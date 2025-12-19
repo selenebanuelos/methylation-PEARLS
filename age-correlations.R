@@ -62,8 +62,17 @@ blood_corr <- ages %>%
   select(c(age_baseline, contains(clock_names))) %>%
   correlate() %>%
   focus(age_baseline) %>%
-  dplyr::rename(clock = term,
-                corr_chrono_age = age_baseline)
+  dplyr::rename(predictor = term,
+                corr_chrono_age = age_baseline) %>%
+  # add in % of missing predictive CpGs
+  mutate(perc_missing_cpg = clocks$perc_missing_cpg,
+         cat_perc_missing_cpg = case_when(
+           perc_missing_cpg <= 10 ~ '% <= 10',
+           perc_missing_cpg > 10 & perc_missing_cpg <= 20 ~ '10 < % <= 20',
+           perc_missing_cpg > 20 & perc_missing_cpg <= 30 ~ '20 < % <= 30',
+           perc_missing_cpg > 30 ~ '% > 30'
+         )
+  )
   
 # calculate correlations for buccal samples
 buccal_corr <- ages %>%
@@ -71,16 +80,33 @@ buccal_corr <- ages %>%
   select(c(age_baseline, contains(clock_names))) %>%
   correlate() %>%
   focus(age_baseline) %>%
-  dplyr::rename(clock = term,
-                corr_chrono_age = age_baseline)
+  dplyr::rename(predictor = term,
+                corr_chrono_age = age_baseline) %>%
+  # add in % of missing predictive CpGs
+  mutate(perc_missing_cpg = clocks$perc_missing_cpg,
+         cat_perc_missing_cpg = case_when(
+           perc_missing_cpg <= 10 ~ '% <= 10',
+           perc_missing_cpg > 10 & perc_missing_cpg <= 20 ~ '10 < % <= 20',
+           perc_missing_cpg > 20 & perc_missing_cpg <= 30 ~ '20 < % <= 30',
+           perc_missing_cpg > 30 ~ '% > 30'
+           )
+         )
 
-# plot correlations ############################################################
-# in blood samples
+# data visualization ###########################################################
+# order bar plots by % missing cpg (low to high) and put above bar?
+# bar plots showing correlation between epigenetic & chrono age in blood
 blood_plot <- blood_corr %>%
-  mutate(corr_chrono_age = signif(corr_chrono_age, digits = 2)) %>%
-  ggplot(aes(x = clock,
-             y = corr_chrono_age)) +
+  # format numbers
+  mutate(corr_chrono_age = signif(corr_chrono_age, digits = 2),
+         perc_missing_cpg = signif(perc_missing_cpg, digits = 2)
+         ) %>%
+  ggplot(aes(
+    # reorder bars in ascending order based on % missing predictive CpGs
+    x = reorder(predictor, perc_missing_cpg), 
+    y = corr_chrono_age
+    )) +
   geom_bar(stat = 'identity') +
+  # label correlations between ages within bars
   geom_text(aes(label = corr_chrono_age),
             vjust = 1.5,
             position = position_dodge(width = 0.9)
@@ -89,11 +115,14 @@ blood_plot <- blood_corr %>%
   xlab('epigenetic age') +
   ggtitle('Blood samples')
 
-# in buccal swab samples
+# bar plots showing correlation between epigenetic & chrono age in buccal swabs
 buccal_plot <- buccal_corr %>%
   mutate(corr_chrono_age = signif(corr_chrono_age, digits = 2)) %>%
-  ggplot(aes(x = clock,
-             y = corr_chrono_age)) +
+  ggplot(aes(
+    # bars in ascending order based on % missing predictive CpGs
+    x = reorder(predictor, perc_missing_cpg), 
+    y = corr_chrono_age)
+    ) +
   geom_bar(stat = 'identity') +
   geom_text(aes(label = corr_chrono_age),
             vjust = 1.5,
@@ -102,3 +131,5 @@ buccal_plot <- buccal_corr %>%
   ylab('Correlation with chronological age') +
   xlab('epigenetic age') +
   ggtitle('Buccal swab samples')
+
+# create bar plots showing mean absolute error & order by % missing CpGs
