@@ -1,7 +1,7 @@
 ### Author: Selene Banuelos
 ### Date: 12/15/2025
-### Description: Investigate correlation between chronological age & predicted
-### epigenetic ages
+### Description: Select which clocks to use based on criteria
+### Investigate correlation between chronological age & epigenetic ages
 
 # setup
 library(dplyr)
@@ -10,23 +10,32 @@ library(corrr)
 library(ggplot2)
 
 # import data ##################################################################
-# methylation predictor summary
-missing_cpg <- read.csv('data-processed/summary_methscore_CpG.csv')
+# information on required CpGs per predictor
+pred_info <- read.csv('data-processed/summary_methscore_CpG.csv')
 
-# sample information 
-sample <- read.csv('data-processed/pearls-acesmatchingbysexage.csv')
-
-# methylation predictions
+# generated methylation predictions
 predictions <- read.csv('data-processed/dnam-predictors.csv')
 
-# identify predictors that have <=10% of predictive CpGs missing ###############
-quality_predictors <- missing_cpg %>%
-  # format predictor name for joining downstream
-  mutate(predictor = janitor::make_clean_names(predictor)) %>%
-  mutate(perc_missing_cpg = 100*(nCpG_missing / nCpG_required)) %>%
-  filter(perc_missing_cpg <= 10)
+# participant information (including chronological age)
+sample <- read.csv('data-processed/pearls-acesmatchingbysexage.csv')
 
-# data wrangling 
+# calculate % of missing predictive CpGs and filter for clocks only (no protein)
+clocks <- pred_info %>%
+  # format predictor name for joining downstream
+  mutate(predictor = janitor::make_clean_names(predictor),
+         # calculate % of missing CpGs
+         perc_missing_cpg = 100*(nCpG_missing / nCpG_required)
+  ) %>%
+  # filter for clocks/epigenetic age predictors
+  filter(Type == 'DNAm Age') %>%
+  # remove principal component (PC) versions of clocks since they are redundant
+  filter(!grepl('based on PC component', Description))
+# warning is from weird character in some descriptions
+
+# get vector of clock names
+clock_names <- clocks$predictor
+
+# clean up sample data
 sample_long <- sample %>%
   pivot_longer(cols = c(T2_specimenid, T5_specimenid),
                names_pattern = '(.)_(.*)',
@@ -35,11 +44,7 @@ sample_long <- sample %>%
   select(c(subjectid, age_baseline, specimenid)) %>%
   mutate(specimenid = as.character(specimenid))
 
-# calculate correlation between predicted age and chronological age ############
-# get names of useable predictors (<=10% predictive CpGs missing)
-predictors <- quality_predictors$predictor
-
-# data wrangling
+# clean up prediction data & merge to participant information
 ages <- predictions %>%
   mutate(sample_id = str_remove(sample_id,'^0+' # leading zeros
                                ),
@@ -49,74 +54,34 @@ ages <- predictions %>%
   dplyr::rename(specimenid = sample_id) %>%
   select(-contains(c('resid', 'PC'))) %>%
   full_join(., sample_long, by = 'specimenid') %>%
-  filter(imp_method == 'knn') # change to mean if needed after speaking with amy
-   
-# calculate correlations for blood and buccal samples combined
-blood_buccal <- ages %>%
-  select(c(age_baseline, contains(predictors))) %>%
-  correlate() %>%
-  focus(age_baseline) %>%
-  dplyr::rename(predictor = term) %>%
-  # add predictor type back in
-  left_join(., 
-            select(quality_predictors, c(predictor, Type)),
-            by = 'predictor')
+  filter(imp_method == 'knn')
 
 # calculate correlations for blood samples
 blood_corr <- ages %>%
   filter(tissue == 'blood') %>%
-  select(c(age_baseline, contains(predictors))) %>%
+  select(c(age_baseline, contains(clock_names))) %>%
   correlate() %>%
   focus(age_baseline) %>%
-  dplyr::rename(predictor = term) %>%
-  # add predictor type back in
-  left_join(., 
-            select(quality_predictors, c(predictor, Type)),
-            by = 'predictor')
+  dplyr::rename(clock = term,
+                corr_chrono_age = age_baseline)
   
 # calculate correlations for buccal samples
 buccal_corr <- ages %>%
   filter(tissue == 'buccal') %>%
-  select(c(age_baseline, contains(predictors))) %>%
+  select(c(age_baseline, contains(clock_names))) %>%
   correlate() %>%
   focus(age_baseline) %>%
-  dplyr::rename(predictor = term) %>%
-  # add predictor type back in
-  left_join(., 
-            select(quality_predictors, c(predictor, Type)),
-            by = 'predictor')
+  dplyr::rename(clock = term,
+                corr_chrono_age = age_baseline)
 
 # plot correlations ############################################################
-# age predictors
-blood_buccal_plot <- blood_buccal %>%
-  filter(str_detect(Type, 'Age')) %>% # keep only age predictors
-  mutate(age_baseline = signif(age_baseline, digits = 2)) %>%
-  mutate(term = factor(predictor,
-                       levels = predictor[order(age_baseline)] # order by corr strength
-                       )
-         ) %>%
-  ggplot(aes(x = predictor,
-             y = age_baseline)) +
-  geom_bar(stat = 'identity') +
-  geom_text(aes(label = age_baseline),
-            vjust = 1.5,
-            position = position_dodge(width = 0.9)
-  ) +
-  ylab('Correlation with chronological age') +
-  xlab('epigenetic age') +
-  ggtitle('Buccal and blood samples')
-
+# in blood samples
 blood_plot <- blood_corr %>%
-  filter(str_detect(Type, 'Age')) %>% # keep only age predictors
-  mutate(age_baseline = signif(age_baseline, digits = 2)) %>%
-  mutate(term = factor(predictor,
-                       levels = predictor[order(age_baseline)] # order by corr strength
-  )
-  ) %>%
-  ggplot(aes(x = predictor,
-             y = age_baseline)) +
+  mutate(corr_chrono_age = signif(corr_chrono_age, digits = 2)) %>%
+  ggplot(aes(x = clock,
+             y = corr_chrono_age)) +
   geom_bar(stat = 'identity') +
-  geom_text(aes(label = age_baseline),
+  geom_text(aes(label = corr_chrono_age),
             vjust = 1.5,
             position = position_dodge(width = 0.9)
   ) +
@@ -124,20 +89,16 @@ blood_plot <- blood_corr %>%
   xlab('epigenetic age') +
   ggtitle('Blood samples')
 
+# in buccal swab samples
 buccal_plot <- buccal_corr %>%
-  filter(str_detect(Type, 'Age')) %>% # keep only age predictors
-  mutate(age_baseline = signif(age_baseline, digits = 2)) %>%
-  mutate(term = factor(predictor,
-                       levels = predictor[order(age_baseline)] # order by corr strength
-  )
-  ) %>%
-  ggplot(aes(x = predictor,
-             y = age_baseline)) +
+  mutate(corr_chrono_age = signif(corr_chrono_age, digits = 2)) %>%
+  ggplot(aes(x = clock,
+             y = corr_chrono_age)) +
   geom_bar(stat = 'identity') +
-  geom_text(aes(label = age_baseline),
+  geom_text(aes(label = corr_chrono_age),
             vjust = 1.5,
             position = position_dodge(width = 0.9)
   ) +
   ylab('Correlation with chronological age') +
   xlab('epigenetic age') +
-  ggtitle('Buccal samples')
+  ggtitle('Buccal swab samples')
