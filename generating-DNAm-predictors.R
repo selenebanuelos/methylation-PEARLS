@@ -1,6 +1,6 @@
 ### Author: Selene Banuelos
 ### Date: 11/25/2025
-### Description: Generate methylation predictors for participants
+### Description: Generate methylation-based predictions for participants
 
 # setup
 library(dplyr)
@@ -38,7 +38,7 @@ buccal_pheno <- buccal_info %>%
   select(c(SampleID, Age, Female))
  
 # predict ######################################################################
-# calculate methylation predictors: DNA methylation age & plasma protein levels
+# predict DNA methylation age & plasma protein levels
 
 # using mean methylation values to impute missing CpGs
 blood_pred_mean <- methscore(datMeth = blood, # methylation beta value matrix
@@ -60,7 +60,7 @@ buccal_pred_mean <- methscore(datMeth = buccal,
 # using KNN to impute missing CpGs
 blood_pred_knn <- methscore(datMeth = blood, 
                              datPheno = blood_pheno, 
-                             fastImputation = TRUE, # use KNN imputation
+                             fastImputation = FALSE, # use KNN imputation
                              normalize = FALSE 
                             ) %>%
   mutate(tissue = 'blood',
@@ -68,7 +68,7 @@ blood_pred_knn <- methscore(datMeth = blood,
 
 buccal_pred_knn <- methscore(datMeth = buccal,
                               datPheno = buccal_pheno,
-                              fastImputation = TRUE, # use KNN imputation
+                              fastImputation = FALSE, # use KNN imputation
                               normalize = FALSE 
                              ) %>%
   mutate(tissue = 'buccal',
@@ -76,12 +76,12 @@ buccal_pred_knn <- methscore(datMeth = buccal,
 
 # output #######################################################################
 # combine into one dataframe
-dnam_predictors <- rbind(blood_pred_mean, 
+dnam_predictions <- rbind(blood_pred_mean, 
                          buccal_pred_mean, 
                          blood_pred_knn, 
                          buccal_pred_knn)
 
 # save as csv
-write.csv(dnam_predictors,
-          'data-processed/methylation-predictors.csv',
+write.csv(dnam_predictions,
+          'data-processed/methylation-predictions.csv',
           row.names = FALSE)
