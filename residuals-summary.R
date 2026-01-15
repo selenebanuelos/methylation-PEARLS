@@ -36,21 +36,24 @@ resid_long <- residuals %>%
   tidyr::pivot_longer(
     cols = contains('resid'),
     names_to = c('clock'),
+    names_pattern = '(.*)resid',
     values_to = 'resid'
   )
-# edit to get rid of 'resid' suffix at the end of each clock's name
 
 # data visualization
 ################################################################################
 # create 2 plots, one for each tissue type
 # create box and whisker plots to show deviation from 0, stratify on ACEs status
 # blood plot
-residuals %>%
+resid_long %>%
+  filter(clock == 'horvath2' | clock == 'ped_be_') %>%
   filter(tissue == 'blood') %>%
   ggplot(aes(x = aces,# stratify on ACEs status
-             y = horvath2resid
+             y = resid,
+             color = clock
              )
          ) +
-  geom_boxplot()
+  geom_boxplot() +
+  facet_wrap(~clock, nrow = 1)
   
 # buccal plot
