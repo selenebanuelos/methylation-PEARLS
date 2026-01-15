@@ -10,13 +10,13 @@ options(scipen = 999)
 
 # import data
 # generated methylation predictors
-predictors <- read.csv('data-processed/methylation-predictors.csv')
+predictions <- read.csv('data-processed/methylation-predictions.csv')
 
 # missing CpG per predictor
 missing_cpg <- read.csv('data-processed/summary_methscore_CpG.csv')
 
 # calculate differences between predictions generated using each imputation method
-pred_diff <- predictors %>%
+pred_diff <- predictions %>%
   select(-c(tissue, contains('resid'))) %>%
   pivot_wider(values_from = -c(SampleID, imp_method),
               names_from = imp_method,
@@ -27,7 +27,7 @@ pred_diff <- predictors %>%
                names_pattern = ('(.*)(mean|knn)')
   ) %>%
   mutate(difference = mean - knn)
-# no differences in any predictors
+# no differences in any predictions
 
 # calculate the % of predictive CpGs for each predictor ########################
 perc_missing <- missing_cpg %>%

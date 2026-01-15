@@ -15,27 +15,62 @@ buccal <- readRDS('data-raw/Final_Cleaned_Buccal_Betas_n38.rds')
 blood_info <- readRDS('data-raw/Final_SampleInfo_Blood_n39.rds')
 buccal_info <- readRDS('data-raw/Final_SampleInfo_Buccal_n38.rds')
 
-# data wrangling ###############################################################
-# clean up phenotype data for use in methscore() below
-blood_pheno <- blood_info %>%
-  # originally, 0=Female. Change to 1=Female, 0=Male
-  mutate(Female = case_when(sex_.0.F. == '0' ~ 1,
-                            sex_.0.F. == '1' ~ 0)
-         ) %>%
-  dplyr::rename('SampleID' = 'Sample_Name',
-         'Age' = 'age_baseline'
-         ) %>%
-  select(c(SampleID, Age, Female))
+# import participants demographics data (contains chronological age)
+demo <- read.csv('data-raw/pearls_data_LauraDiaz_2025_11_20.csv')
 
-buccal_pheno <- buccal_info %>%
+# data wrangling ###############################################################
+# clean up chronological age data
+age <- demo %>%
+  select(pearls_id, contains('collectionage')) %>%
+  tidyr::pivot_longer(
+    cols = !pearls_id,
+    names_to = c('visitnum'),
+    names_pattern = '_t(.)', # keep number after '_t', which specifies timepoint
+    values_to = 'Age'
+  ) %>%
+  # get rid of t4 info, we don't have data for that timepoint
+  filter(visitnum != 4) 
+  
+
+# clean up phenotype data for use in methscore() below
+# put blood and buccal sample info into list to clean up
+sample_info <- list(blood_info, buccal_info)
+
+# vector of variables needed to generate predictions
+vars <- c('subjectid', 'Timepoint', 'sex_.0.F.', 'Sample_Name', 'Tissue')
+
+# clean up phenotype data
+phenotype <- sample_info %>%
+  # select only relevant variables and combine into one df
+  purrr::map_df(.,
+                function(x) x %>% select(vars)
+  ) %>%
   # originally, 0=Female. Change to 1=Female, 0=Male
   mutate(Female = case_when(sex_.0.F. == '0' ~ 1,
                             sex_.0.F. == '1' ~ 0)
   ) %>%
-  dplyr::rename('SampleID' = 'Sample_Name',
-         'Age' = 'age_baseline'
+  # rename for joining
+  dplyr::rename('pearls_id' = 'subjectid') %>%
+  # remove 'T' from timepoint value for joining
+  mutate(visitnum = str_remove(Timepoint, '^T')
   ) %>%
-  select(c(SampleID, Age, Female))
+  # add in age at biospecimen collection
+  left_join(.,
+            age,
+            by = c('pearls_id', 'visitnum')
+            ) %>%
+  # rename for methscore() below
+  dplyr::rename('SampleID' = 'Sample_Name')
+
+blood_pheno <- phenotype %>%
+  filter(Tissue == 'Blood') %>%
+  # keep only relevant variables for methscore() below
+  select(SampleID, Age, Female)
+
+buccal_pheno <- phenotype %>%
+  filter(Tissue == 'Buccal') %>%
+  # keep only relevant variables for methscore() below
+  select(SampleID, Age, Female)
  
 # predict ######################################################################
 # predict DNA methylation age & plasma protein levels
