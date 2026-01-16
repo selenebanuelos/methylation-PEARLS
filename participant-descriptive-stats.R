@@ -61,6 +61,8 @@ characteristics <- select(sample_long, !age_baseline) %>%
 # will need to add in cell type eventually? but that might take some extra work
 # will need to review email from Kobor lab b/c I think they mentioned that cell
 # type proportions should be estimated after batch correction? not sure...
+# cell type proportions are reported in DNAme sample informationl procided by 
+# Kobor lab
 
 # data visualization
 ################################################################################
