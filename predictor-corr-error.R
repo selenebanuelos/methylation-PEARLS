@@ -1,8 +1,8 @@
 ### Author: Selene Banuelos
 ### Date: 12/15/2025
-### Description: Assess chronological age predictor performance by calculating
-### correlation between predicted age and chronological age as well as mean 
-### absolute error between predicted and chronological age
+### Description: Assess all chronological age predictor performance by 
+### calculating correlation between predicted age and chronological age as well
+### as mean absolute error between predicted and chronological age
 
 # setup
 library(tidyverse)
@@ -87,17 +87,6 @@ buccal_corr <- joint %>%
   focus(age) %>%
   dplyr::rename(clock = term,
                 corr_chrono_age = age)
-  
-  # # add in % of missing predictive CpGs
-  # mutate(perc_missing_cpg = clocks$perc_missing_cpg,
-  #        cat_perc_missing_cpg = case_when(
-  #          perc_missing_cpg <= 10 ~ '% <= 10',
-  #          perc_missing_cpg > 10 & perc_missing_cpg <= 20 ~ '10 < % <= 20',
-  #          perc_missing_cpg > 20 & perc_missing_cpg <= 30 ~ '20 < % <= 30',
-  #          perc_missing_cpg > 30 ~ '% > 30'
-  #          )
-  #        )
-  # order bar plots by % missing cpg (low to high) and put above bar?
 
 # bar plots showing correlation between epigenetic & chrono age in blood
 blood_corr %>%
