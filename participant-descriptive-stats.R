@@ -11,6 +11,15 @@ library(table1)
 # sample information
 sample <- read.csv('data-processed/pearls-acesmatchingbysexage.csv')
 
+# cell type proportions estimated by Kobor lab
+blood_cells <- readRDS('data-raw/Final_SampleInfo_Blood_n39.rds') %>%
+  # only keep cell type proportion columns
+  select(specimenid,Bas:Treg) 
+
+buccal_cells <- readRDS('data-raw/Final_SampleInfo_Buccal_n38.rds') %>%
+  # only keep cell type proportion columns
+  select(specimenid, Epi:Eosino)
+
 # data on partipant chronological age at each timepoint
 age <- read.csv('data-raw/pearls_data_LauraDiaz_2025_11_20.csv')
 
@@ -38,7 +47,7 @@ age_long <- age %>%
 
 # clean up DNAme sample info with specimen id, sex, ACEs at baseline
 sample_long <- sample %>%
-  pivot_longer(cols = c(T2_specimenid, T5_specimenid),
+  tidyr::pivot_longer(cols = c(T2_specimenid, T5_specimenid),
                names_pattern = 'T(.)_(.*)', # don't keep 'T' prefix for timepoint
                names_to = c('timepoint', '.value')
   ) %>%
@@ -65,39 +74,73 @@ characteristics <- select(sample_long, !age_baseline) %>%
   left_join(passed_qc,
             by = 'specimenid'
             )
-# will need to add in cell type eventually? but that might take some extra work
-# will need to review email from Kobor lab b/c I think they mentioned that cell
-# type proportions should be estimated after batch correction? not sure...
-# cell type proportions are reported in DNAme sample informationl procided by 
-# Kobor lab
+
+# separate data by tissue type and add in cell type proportions
+blood <- characteristics %>%
+  filter(tissue == 'blood') %>%
+  left_join(blood_cells,
+            by = 'specimenid')
+
+buccal <- characteristics %>%
+  filter(tissue == 'buccal') %>%
+  left_join(buccal_cells,
+            by = 'specimenid')
 
 # data visualization
 ################################################################################
 # create descriptive statistics tables (table 1), stratified by adversity status
-# table for blood samples
-stats_blood <- table1(
+# table for t2 blood samples
+table1(
   # display the following characteristics, stratified on ACEs status
-  ~ factor(sex) + age + caregiver_edu_4groups | aces_cat, 
+  ~ factor(sex) + age + caregiver_edu_4groups  | aces_cat, 
   # specify which participants to include in table
-  data = characteristics %>%
+  data = blood %>%
     # keep only blood data
-    filter(tissue == 'blood') %>%
-    # only include participants that passed QC
-    filter(passed_qc == 1),
-  caption = 'Descriptive statistics for blood samples'
+    filter(tissue == 'blood',
+           # only include participants that passed QC
+           passed_qc == 1,
+           # only show stats for t2 samples
+           timepoint == '2'
+           ),
+  caption = 'Descriptive statistics for T2 blood samples'
   )
 
-# table for buccal samples
-stats_buccal <- table1(
-  # display the following characteristics, stratified on ACEs status
+# table for t2 buccal samples
+table1(
   ~ factor(sex) + age + caregiver_edu_4groups | aces_cat, 
-  # specify which participants to include in table
   data = characteristics %>%
-    # keep only blood data
-    filter(tissue == 'buccal') %>%
-    # only include participants that passed QC
-    filter(passed_qc == 1),
-  caption = 'Descriptive statistics for buccal samples'
+    filter(tissue == 'buccal',
+           passed_qc == 1,
+           timepoint == '2'
+           ),
+  caption = 'Descriptive statistics for T2 buccal samples'
+  )
+
+# table for t5 blood samples
+table1(
+  ~ factor(sex) + age + caregiver_edu_4groups | aces_cat, 
+  data = characteristics %>%
+    filter(tissue == 'blood',
+           passed_qc == 1,
+           timepoint == '5'
+    ),
+  caption = 'Descriptive statistics for T5 blood samples'
+  )
+
+# table for t5 buccal samples
+table1(
+  ~ factor(sex) + age + caregiver_edu_4groups | aces_cat, 
+  data = characteristics %>%
+    filter(tissue == 'buccal',
+           passed_qc == 1,
+           timepoint == '5'
+    ),
+    caption = 'Descriptive statistics for T5 buccal samples'
 )
 
+# visualize cell type proportions
+################################################################################
+
+
 # output
+# have not yet looked into easy way to save table1 tables
