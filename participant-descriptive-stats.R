@@ -11,15 +11,6 @@ library(table1)
 # sample information
 sample <- read.csv('data-processed/pearls-acesmatchingbysexage.csv')
 
-# cell type proportions estimated by Kobor lab
-blood_cells <- readRDS('data-raw/Final_SampleInfo_Blood_n39.rds') %>%
-  # only keep cell type proportion columns
-  select(specimenid,Bas:Treg) 
-
-buccal_cells <- readRDS('data-raw/Final_SampleInfo_Buccal_n38.rds') %>%
-  # only keep cell type proportion columns
-  select(specimenid, Epi:Eosino)
-
 # data on partipant chronological age at each timepoint
 age <- read.csv('data-raw/pearls_data_LauraDiaz_2025_11_20.csv')
 
@@ -137,10 +128,6 @@ table1(
     ),
     caption = 'Descriptive statistics for T5 buccal samples'
 )
-
-# visualize cell type proportions
-################################################################################
-
 
 # output
 # have not yet looked into easy way to save table1 tables
