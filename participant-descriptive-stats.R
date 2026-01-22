@@ -17,7 +17,7 @@ age <- read.csv('data-raw/pearls_data_LauraDiaz_2025_11_20.csv')
 # data on caregiver education at baseline
 caregiver_edu <- read.csv('data-raw/pearls_dataset_2022-07-08.csv') %>%
   filter(visitnum == 1) %>%
-  select(pearls_id, caregiver_edu_4groups)
+  select(pearls_id, caregiver_edu_binary, )
 
 # samples that passed qc
 passed_qc <- read.csv('data-processed/samples-passed-qc.csv') %>%
@@ -66,26 +66,15 @@ characteristics <- select(sample_long, !age_baseline) %>%
             by = 'specimenid'
             )
 
-# separate data by tissue type and add in cell type proportions
-blood <- characteristics %>%
-  filter(tissue == 'blood') %>%
-  left_join(blood_cells,
-            by = 'specimenid')
-
-buccal <- characteristics %>%
-  filter(tissue == 'buccal') %>%
-  left_join(buccal_cells,
-            by = 'specimenid')
-
 # data visualization
 ################################################################################
 # create descriptive statistics tables (table 1), stratified by adversity status
 # table for t2 blood samples
 table1(
   # display the following characteristics, stratified on ACEs status
-  ~ factor(sex) + age + caregiver_edu_4groups  | aces_cat, 
+  ~ factor(sex) + age + caregiver_edu_binary  | aces_cat, 
   # specify which participants to include in table
-  data = blood %>%
+  data = characteristics %>%
     # keep only blood data
     filter(tissue == 'blood',
            # only include participants that passed QC

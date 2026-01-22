@@ -220,3 +220,10 @@ buccal_error %>%
   ylab('Mean absolute error') +
   xlab('Clock') +
   ggtitle('Buccal samples: Mean absolute error between epigenetic and chronological age')
+
+# output 
+################################################################################
+write.csv(joint,
+          file = 'data-processed/dnam-age-sample-info.csv',
+          row.names = FALSE
+          )
