@@ -51,7 +51,8 @@ ages_long %>%
               geom = 'smooth'
               ) +
   # stratify plot by epigenetic clock
-  facet_wrap(~clock)
+  facet_wrap(~clock) + 
+  ggtitle('All blood samples')
 
 # buccal samples
 ages_long %>%
@@ -71,4 +72,5 @@ ages_long %>%
               geom = 'smooth'
   ) +
   # stratify plot by epigenetic clock
-  facet_wrap(~clock)
+  facet_wrap(~clock) + 
+  ggtitle('All buccal samples')

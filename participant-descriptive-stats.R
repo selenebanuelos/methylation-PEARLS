@@ -14,10 +14,16 @@ sample <- read.csv('data-processed/pearls-acesmatchingbysexage.csv')
 # data on partipant chronological age at each timepoint
 age <- read.csv('data-raw/pearls_data_LauraDiaz_2025_11_20.csv')
 
-# data on caregiver education at baseline
-caregiver_edu <- read.csv('data-raw/pearls_dataset_2022-07-08.csv') %>%
-  filter(visitnum == 1) %>%
-  select(pearls_id, caregiver_edu_binary, )
+# data on caregiver education and household income at baseline
+edu_income <- read.csv('data-raw/pearls_dataset_2022-07-08.csv') %>%
+  #
+  filter(visitnum == 1 | visitnum == 2) %>%
+  select(pearls_id,
+         visitnum,
+         caregiver_edu_binary, 
+         caregiver_edu_4groups,
+         income_FPL_100
+         )
 
 # samples that passed qc
 passed_qc <- read.csv('data-processed/samples-passed-qc.csv') %>%
