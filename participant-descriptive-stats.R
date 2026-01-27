@@ -14,16 +14,21 @@ sample <- read.csv('data-processed/pearls-acesmatchingbysexage.csv')
 # data on partipant chronological age at each timepoint
 age <- read.csv('data-raw/pearls_data_LauraDiaz_2025_11_20.csv')
 
-# data on caregiver education and household income at baseline
-edu_income <- read.csv('data-raw/pearls_dataset_2022-07-08.csv') %>%
-  #
-  filter(visitnum == 1 | visitnum == 2) %>%
+# data on caregiver education at T1
+edu <- read.csv('data-raw/pearls_dataset_2022-07-08.csv') %>%
+  filter(visitnum == 1) %>%
+  select(pearls_id,
+         caregiver_edu_binary, 
+         caregiver_edu_4groups
+         )
+
+# data on household income at T2 (typically 1 month from T2)
+income <- read.csv('data-raw/pearls_dataset_2022-07-08.csv') %>%
+  filter(visitnum == 2) %>%
   select(pearls_id,
          visitnum,
-         caregiver_edu_binary, 
-         caregiver_edu_4groups,
          income_FPL_100
-         )
+  )
 
 # samples that passed qc
 passed_qc <- read.csv('data-processed/samples-passed-qc.csv') %>%
@@ -63,10 +68,13 @@ characteristics <- select(sample_long, !age_baseline) %>%
   left_join(age_long,
             by = c('pearls_id', 'timepoint')
             ) %>%
-  # add in caregiver education at baseline
-  left_join(caregiver_edu,
+  # add in caregiver education at T1
+  left_join(edu,
             by = 'pearls_id'
             ) %>%
+  # add household income at T2
+  left_join(income,
+            by = 'pearls_id') %>%
   # add in indicator of sample passing QC
   left_join(passed_qc,
             by = 'specimenid'
@@ -78,7 +86,13 @@ characteristics <- select(sample_long, !age_baseline) %>%
 # table for t2 blood samples
 table1(
   # display the following characteristics, stratified on ACEs status
-  ~ factor(sex) + age + caregiver_edu_binary  | aces_cat, 
+  ~ factor(sex) + 
+    age + 
+    caregiver_edu_binary + 
+    caregiver_edu_4groups +
+    income_FPL_100
+  # stratify table by ACEs status
+  | aces_cat, 
   # specify which participants to include in table
   data = characteristics %>%
     # keep only blood data
@@ -93,35 +107,68 @@ table1(
 
 # table for t2 buccal samples
 table1(
-  ~ factor(sex) + age + caregiver_edu_4groups | aces_cat, 
+  # display the following characteristics, stratified on ACEs status
+  ~ factor(sex) + 
+    age + 
+    caregiver_edu_binary + 
+    caregiver_edu_4groups +
+    income_FPL_100
+  # stratify table by ACEs status
+  | aces_cat, 
+  # specify which participants to include in table
   data = characteristics %>%
+    # keep only blood data
     filter(tissue == 'buccal',
+           # only include participants that passed QC
            passed_qc == 1,
+           # only show stats for t2 samples
            timepoint == '2'
-           ),
+    ),
   caption = 'Descriptive statistics for T2 buccal samples'
-  )
+)
 
 # table for t5 blood samples
 table1(
-  ~ factor(sex) + age + caregiver_edu_4groups | aces_cat, 
+  # display the following characteristics, stratified on ACEs status
+  ~ factor(sex) + 
+    age + 
+    caregiver_edu_binary + 
+    caregiver_edu_4groups +
+    income_FPL_100
+  # stratify table by ACEs status
+  | aces_cat, 
+  # specify which participants to include in table
   data = characteristics %>%
+    # keep only blood data
     filter(tissue == 'blood',
+           # only include participants that passed QC
            passed_qc == 1,
+           # only show stats for t2 samples
            timepoint == '5'
     ),
   caption = 'Descriptive statistics for T5 blood samples'
-  )
+)
 
 # table for t5 buccal samples
 table1(
-  ~ factor(sex) + age + caregiver_edu_4groups | aces_cat, 
+  # display the following characteristics, stratified on ACEs status
+  ~ factor(sex) + 
+    age + 
+    caregiver_edu_binary + 
+    caregiver_edu_4groups +
+    income_FPL_100
+  # stratify table by ACEs status
+  | aces_cat, 
+  # specify which participants to include in table
   data = characteristics %>%
+    # keep only blood data
     filter(tissue == 'buccal',
+           # only include participants that passed QC
            passed_qc == 1,
+           # only show stats for t2 samples
            timepoint == '5'
     ),
-    caption = 'Descriptive statistics for T5 buccal samples'
+  caption = 'Descriptive statistics for T5 buccal samples'
 )
 
 # output
