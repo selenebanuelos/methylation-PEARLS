@@ -90,7 +90,7 @@ table1(
     age + 
     caregiver_edu_binary + 
     caregiver_edu_4groups +
-    income_FPL_100
+    factor(income_FPL_100)
   # stratify table by ACEs status
   | aces_cat, 
   # specify which participants to include in table
@@ -112,7 +112,7 @@ table1(
     age + 
     caregiver_edu_binary + 
     caregiver_edu_4groups +
-    income_FPL_100
+    factor(income_FPL_100)
   # stratify table by ACEs status
   | aces_cat, 
   # specify which participants to include in table
@@ -134,7 +134,7 @@ table1(
     age + 
     caregiver_edu_binary + 
     caregiver_edu_4groups +
-    income_FPL_100
+    factor(income_FPL_100)
   # stratify table by ACEs status
   | aces_cat, 
   # specify which participants to include in table
@@ -156,7 +156,7 @@ table1(
     age + 
     caregiver_edu_binary + 
     caregiver_edu_4groups +
-    income_FPL_100
+    factor(income_FPL_100)
   # stratify table by ACEs status
   | aces_cat, 
   # specify which participants to include in table
