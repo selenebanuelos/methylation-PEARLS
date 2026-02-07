@@ -1,6 +1,7 @@
 ### Author: Selene Banuelos
 ### Date: 11/25/2025
-### Description: Generate methylation-based predictions for participants
+### Description: Generate methylation-based predictions for participants for 
+### each timepoint, independently
 
 # setup
 library(dplyr)
@@ -30,7 +31,6 @@ age <- demo %>%
   ) %>%
   # get rid of t4 info, we don't have data for that timepoint
   filter(visitnum != 4) 
-  
 
 # clean up phenotype data for use in methscore() below
 # put blood and buccal sample info into list to clean up
@@ -52,7 +52,7 @@ phenotype <- sample_info %>%
   # rename for joining
   dplyr::rename('pearls_id' = 'subjectid') %>%
   # remove 'T' from timepoint value for joining
-  mutate(visitnum = str_remove(Timepoint, '^T')
+  mutate(visitnum = stringr::str_remove(Timepoint, '^T')
   ) %>%
   # add in age at biospecimen collection
   left_join(.,
@@ -62,59 +62,89 @@ phenotype <- sample_info %>%
   # rename for methscore() below
   dplyr::rename('SampleID' = 'Sample_Name')
 
-blood_pheno <- phenotype %>%
-  filter(Tissue == 'Blood') %>%
+# separate phenotype data by timepoint and tissue type
+blood_pheno_2 <- phenotype %>%
+  filter(Tissue == 'Blood',
+         Timepoint == 'T2'
+         ) %>%
   # keep only relevant variables for methscore() below
   select(SampleID, Age, Female)
 
-buccal_pheno <- phenotype %>%
-  filter(Tissue == 'Buccal') %>%
-  # keep only relevant variables for methscore() below
+blood_pheno_5 <- phenotype %>%
+  filter(Tissue == 'Blood',
+         Timepoint == 'T5'
+         ) %>%
   select(SampleID, Age, Female)
+
+buccal_pheno_2 <- phenotype %>%
+  filter(Tissue == 'Buccal',
+         Timepoint == 'T2'
+         ) %>%
+  select(SampleID, Age, Female)
+
+buccal_pheno_5 <- phenotype %>%
+  filter(Tissue == 'Buccal',
+         Timepoint == 'T5'
+         ) %>%
+  select(SampleID, Age, Female)
+
+# separate methylation data by timepoint and tissue type
+blood_2 <- blood[, blood_pheno_2$SampleID]
+blood_5 <- blood[, blood_pheno_5$SampleID]
+buccal_2 <- buccal[, buccal_pheno_2$SampleID]
+buccal_5 <- buccal[, buccal_pheno_5$SampleID]
  
 # predict ######################################################################
-# predict DNA methylation age & plasma protein levels
-
+# predict epigenetic age & plasma protein levels
 # using mean methylation values to impute missing CpGs
-blood_pred_mean <- methscore(datMeth = blood, # methylation beta value matrix
-                              datPheno = blood_pheno, # phenotype data,
-                              fastImputation = TRUE, # use mean meth values
-                              normalize = FALSE # data previously normalized
-                              ) %>%
-  mutate(tissue = 'blood',
-         imp_method = 'mean')
 
-buccal_pred_mean <- methscore(datMeth = buccal,
-                              datPheno = buccal_pheno,
-                              fastImputation = TRUE, # use mean meth values
-                              normalize = FALSE 
-                              ) %>%
+# blood samples from t2
+blood_pred_2 <- methscore(datMeth = blood_2, # methylation beta value matrix
+                          datPheno = blood_pheno_2, # phenotype data,
+                          fastImputation = TRUE, # use mean meth values
+                          normalize = FALSE # data previously normalized
+                          ) %>%
+  mutate(tissue = 'blood', 
+         imp_method = 'mean'
+         )
+
+# blood samples from t5
+blood_pred_5 <- methscore(datMeth = blood_5, 
+                          datPheno = blood_pheno_5, 
+                          fastImputation = TRUE, 
+                          normalize = FALSE 
+                          ) %>%
+  mutate(tissue = 'blood', 
+         imp_method = 'mean'
+         )
+
+# buccal samples from t2
+buccal_pred_2 <- methscore(datMeth = buccal_2,
+                           datPheno = buccal_pheno_2,
+                           fastImputation = TRUE, 
+                           normalize = FALSE 
+                           ) %>%
   mutate(tissue = 'buccal',
-         imp_method = 'mean')
+         imp_method = 'mean'
+         )
 
-# using KNN to impute missing CpGs
-blood_pred_knn <- methscore(datMeth = blood, 
-                             datPheno = blood_pheno, 
-                             fastImputation = FALSE, # use KNN imputation
-                             normalize = FALSE 
-                            ) %>%
-  mutate(tissue = 'blood',
-         imp_method = 'knn')
-
-buccal_pred_knn <- methscore(datMeth = buccal,
-                              datPheno = buccal_pheno,
-                              fastImputation = FALSE, # use KNN imputation
-                              normalize = FALSE 
-                             ) %>%
+# buccal samples from t5
+buccal_pred_5 <- methscore(datMeth = buccal_5,
+                           datPheno = buccal_pheno_5,
+                           fastImputation = TRUE, 
+                           normalize = FALSE 
+                           ) %>%
   mutate(tissue = 'buccal',
-         imp_method = 'knn')
+         imp_method = 'mean'
+         )
 
 # output #######################################################################
 # combine into one dataframe
-dnam_predictions <- rbind(blood_pred_mean, 
-                         buccal_pred_mean, 
-                         blood_pred_knn, 
-                         buccal_pred_knn)
+dnam_predictions <- rbind(blood_pred_2,
+                          blood_pred_5,
+                          buccal_pred_2,
+                          buccal_pred_5
+                          )
 
 # save as csv
 write.csv(dnam_predictions,
