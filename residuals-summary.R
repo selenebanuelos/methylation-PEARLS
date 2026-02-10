@@ -51,8 +51,6 @@ residuals <- predictions %>%
   select(specimenid, age, imp_method, tissue, contains('resid')) %>%
   # add in participant id info to match with demo data
   full_join(., sample_long, by = 'specimenid') %>%
-  # keep only predictions generated using KNN for missing CpG imputation
-  filter(imp_method == 'knn') %>%
   # create categorical ACEs var (no ACEs/high ACEs) from ACE score at BASELINE
   mutate(aces = case_when(aces_baseline == 0 ~ "no",
                           aces_baseline != 0 ~ "high"
@@ -68,8 +66,36 @@ resid_long <- residuals %>%
     values_to = 'resid'
   )
 
+# get mean residual per tissue and timepoint groups
+resid_long %>%
+  filter(clock %in% c('horvath2', 'ped_be_')) %>%
+  group_by(tissue, timepoint, clock) %>%
+  summarise(lower = quantile(resid, 0.25),
+            median = quantile(resid, 0.5),
+            upper = quantile(resid, 0.75)
+            )
+
 # data visualization
 ################################################################################
+# plot distribution of residuals
+# blood samples
+resid_long %>%
+  filter(clock %in% c('horvath2', 'ped_be_'),
+         tissue == 'blood'
+         ) %>%
+  ggplot(aes(x = resid)) +
+  geom_histogram() + 
+  facet_grid(clock ~ timepoint)
+
+# buccal samples
+resid_long %>%
+  filter(clock %in% c('horvath2', 'ped_be_'),
+         tissue == 'buccal'
+  ) %>%
+  ggplot(aes(x = resid)) +
+  geom_histogram() + 
+  facet_grid(clock ~ timepoint)
+
 # create 2 plots, one for each tissue type
 # create box and whisker plots to show deviation from 0, stratify on ACEs status
 # blood plot
@@ -97,3 +123,9 @@ resid_long %>%
   geom_boxplot() +
   facet_grid(clock ~ timepoint) +
   ggtitle('Age acceleration residuals in buccal samples')
+
+# output
+################################################################################
+write.csv(residuals,
+          file = 'data-processed/epi-chrono-age-residuals.csv',
+          row.names = FALSE)
