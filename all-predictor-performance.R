@@ -6,7 +6,7 @@
 
 # setup
 library(tidyverse)
-library(corrr)
+library(rmcorr) # calculate correlation for repeated measures
 
 # import data
 ################################################################################
@@ -64,29 +64,43 @@ joint <- predictions %>%
   full_join(., 
             sample_long, 
             by = 'specimenid'
-            ) %>%
-  # remove predictions based on imputation with mean methylation reference values
-  filter(imp_method == 'knn')
+            )
 
 # calculate & plot correlations between epigenetic and chronological ages 
 ################################################################################
-# calculate pearson correlation within blood sample data
-blood_corr <- joint %>%
+# calculate correlation within blood sample data
+blood_corr_horvath2 <- joint %>%
+  #filter(timepoint == 2) %>%
   filter(tissue == 'blood') %>%
-  select(age, chrono_age) %>%
-  correlate() %>%
-  focus(age) %>%
-  dplyr::rename(clock = term,
-                corr_chrono_age = age)
+  rmcorr(participant = 'pearls_id',
+         measure1 = 'horvath2',
+         measure2 = 'age',
+         dataset = .)
+
+blood_corr_pedbe <- joint %>%
+  #filter(timepoint == 2) %>%
+  filter(tissue == 'blood') %>%
+  rmcorr(participant = 'pearls_id',
+         measure1 = 'ped_be',
+         measure2 = 'age',
+         dataset = .)
   
 # calculate pearson correlation within buccal sample data
-buccal_corr <- joint %>%
+buccal_corr_horvath2 <- joint %>%
+  #filter(timepoint == 2) %>%
   filter(tissue == 'buccal') %>%
-  select(age, chrono_age) %>%
-  correlate() %>%
-  focus(age) %>%
-  dplyr::rename(clock = term,
-                corr_chrono_age = age)
+  rmcorr(participant = 'pearls_id',
+         measure1 = 'horvath2',
+         measure2 = 'age',
+         dataset = .)
+
+buccal_corr_pedbe <- joint %>%
+  #filter(timepoint == 2) %>%
+  filter(tissue == 'buccal') %>%
+  rmcorr(participant = 'pearls_id',
+         measure1 = 'ped_be',
+         measure2 = 'age',
+         dataset = .)
 
 # bar plots showing correlation between epigenetic & chrono age in blood
 blood_corr %>%
