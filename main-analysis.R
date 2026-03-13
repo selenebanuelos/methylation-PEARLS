@@ -16,6 +16,7 @@ data <- read.csv('data-processed/dnam-age-sample-info.csv')
 demo <- read.csv('data-raw/pearls_dataset_2022-07-08.csv')
 
 # data wrangling ###############################################################
+# combine all data needed
 clean <- demo %>%
   filter(visitnum == 2) %>% # used only baseline data
   select(pearls_id, income_FPL_100) %>% # get household income data
@@ -25,5 +26,25 @@ clean <- demo %>%
                             aces_baseline >= 5 ~ 'high'
                             )
          )
-  
-  
+
+# factor all categorical variables
+# timepoint
+clean$timepoint <- factor(clean$timepoint,
+                          levels = c(2, 5)) # reference: 2
+# PEARLS status
+clean$pearls <- factor(clean$pearls,
+                       levels = c('no', 'high')) # reference: no
+# sex
+clean$sex <- factor(clean$sex, 
+                    levels = c(0, 1),
+                    labels = c('female', 'male')) # reference: female
+
+# household income below 100% federal poverty level for household of 4 (<25k)
+clean$income_FPL_100 <- factor(clean$income_FPL_100,
+                               levels = c(0,1),
+                               labels = c('no', 'yes')) # reference: no
+
+# linear mixed effects models
+# blood samples
+
+# buccal samples
