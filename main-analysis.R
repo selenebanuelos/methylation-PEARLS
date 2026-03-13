@@ -7,6 +7,7 @@
 
 # setup
 library(dplyr)
+library(lme4)
 
 # import data ##################################################################
 # DNAm age data and other sample info
@@ -44,7 +45,17 @@ clean$income_FPL_100 <- factor(clean$income_FPL_100,
                                levels = c(0,1),
                                labels = c('no', 'yes')) # reference: no
 
-# linear mixed effects models
+# linear mixed effects models ##################################################
 # blood samples
+blood_ped_be <- lmer(ped_be ~ timepoint*pearls + age_baseline + sex + income_FPL_100 + (1 | pearls_id),
+                     data = filter(clean, tissue == 'blood'))
+
+blood_horvath2 <- lmer(horvath2 ~ timepoint*pearls + age_baseline + sex + income_FPL_100 + (1 | pearls_id),
+                     data = filter(clean, tissue == 'blood'))
 
 # buccal samples
+buccal_ped_be <- lmer(ped_be ~ timepoint*pearls + age_baseline + sex + income_FPL_100 + (1 | pearls_id),
+                     data = filter(clean, tissue == 'buccal'))
+
+buccal_horvath2 <- lmer(horvath2 ~ timepoint*pearls + age_baseline + sex + income_FPL_100 + (1 | pearls_id),
+                       data = filter(clean, tissue == 'buccal'))
