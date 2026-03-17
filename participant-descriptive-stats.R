@@ -1,6 +1,7 @@
 ### Author: Selene Banuelos
 ### Date: 1/14/2025
 ### Description: Summarize participant characteristics by adversity status
+### Note: only include samples that passed methylation data QC
 
 # setup
 library(dplyr)
