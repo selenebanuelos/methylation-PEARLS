@@ -59,3 +59,32 @@ buccal_ped_be <- lmer(ped_be ~ timepoint*pearls + age_baseline + sex + income_FP
 
 buccal_horvath2 <- lmer(horvath2 ~ timepoint*pearls + age_baseline + sex + income_FPL_100 + (1 | pearls_id),
                        data = filter(clean, tissue == 'buccal'))
+
+summary(blood_ped_be)
+summary(blood_horvath2)
+summary(buccal_ped_be)
+summary(buccal_horvath2)
+
+# function that creates 95% CI using robust SE
+make_ci <- function(model, # gee object
+                    label # character string describing model
+                    ){
+  
+  # extract coefficients (1) and robust SE (4)
+  coef_data <- summary(model)$coefficients[, c(1,4)]
+  
+  # calculate bounds
+  lower_bound <- coef_data[,1] - 1.96 * coef_data[,2]
+  upper_bound <- coef_data[,1] + 1.96 * coef_data[,2]
+  
+  # format 95% CI with estimate and bounds
+  ci_table <- data.frame(
+    Estimate = round(coef_data[,1], digits = 4),
+    Lower_95_CI = round(lower_bound, digits = 4),
+    Upper_95_CI = round(upper_bound, digits = 4)
+  )
+  
+  print(paste('95% CIs for', label))
+  return(ci_table)
+  
+}
