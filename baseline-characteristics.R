@@ -22,24 +22,19 @@ passed_qc <- read.csv('data-processed/samples-passed-qc.csv') %>%
 
 # data wrangling
 ################################################################################
-# data on caregiver education at T1 (baseline)
-edu <- demo %>%
-  filter(visitnum == 1) %>%
-  select(pearls_id,
-         caregiver_edu_binary, 
-         caregiver_edu_4groups
-  )
-
 # data on household income at T2 (typically 1 month from T2)
 income <- demo %>%
   filter(visitnum == 2) %>%
   select(pearls_id,
-         visitnum,
          income_FPL_100
   )
 
 # combine all data together
 characteristics <- sample %>%
+  # rename participant id for downstream joining
+  rename(pearls_id = subjectid) %>%
+  # add in caregiver education at baseline
+  left_join(income, by = 'pearls_id') %>%
   # format sex and PEARLS variables
   mutate(pearls = case_when(aces_baseline == 0 ~ 'None',
                             aces_baseline >= 5 ~ 'High'),
@@ -47,8 +42,18 @@ characteristics <- sample %>%
                          levels = c(0,1),
                          labels = c('Female', 'Male')
                          ),
-  ) %>%
-  # rename participant id for downstream joining
-  rename(pearls_id = subjectid) %>%
-  # add in car
-         
+         income_FPL_100 = factor(income_FPL_100,
+                                 levels = c(0,1),
+                                 labels = c('No', 'Yes')
+                                 )
+  )
+  
+# create labels for variable names to display in table 
+label(characteristics$age_baseline) <- 'Age'
+label(characteristics$sex) <- 'Sex'
+label(characteristics$income_FPL_100) <- 'Household income below 100% FPL (<25k)'
+
+# data visualization ###########################################################
+# table stratified by PEARLS (no/high) status
+table1(~ age_baseline + sex + income_FPL_100 | pearls,
+       data = characteristics)
