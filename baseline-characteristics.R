@@ -44,14 +44,18 @@ characteristics <- dnam_age %>%
                                  levels = c(0,1),
                                  labels = c('No', 'Yes')
                                  )
-  )
+  ) %>%
+  # keep only timepoint 2 (baseline) observations
+  filter(timepoint == 2)
   
 # create labels for variable names to display in table 
-label(characteristics$age_baseline) <- 'Age'
+label(characteristics$age_baseline) <- 'Age (years)'
+label(characteristics$horvath2) <- 'Horvath Skin & Blood DNAm age (years)'
+label(characteristics$ped_be) <- 'PedBE DNAm age (years)'
 label(characteristics$sex) <- 'Sex'
 label(characteristics$income_FPL_100) <- 'Household income below 100% FPL (<25k)'
 
 # data visualization ###########################################################
 # table stratified by PEARLS (no/high) status
-table1(~ age_baseline + sex + income_FPL_100 | pearls,
+table1(~ age_baseline + sex + income_FPL_100 + horvath2 + ped_be | pearls,
        data = characteristics)
