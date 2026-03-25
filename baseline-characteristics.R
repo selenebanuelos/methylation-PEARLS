@@ -9,11 +9,11 @@ library(table1)
 
 # import data
 ################################################################################
-# sample information
-sample <- read.csv('data-processed/pearls-acesmatchingbysexage.csv')
-
 # demographics data
 demo <- read.csv('data-raw/pearls_dataset_2022-07-08.csv')
+
+# DNAm age predictions and sample information
+dnam_age <- read.csv('data-processed/dnam-age-sample-info.csv')
 
 # samples that passed qc
 passed_qc <- read.csv('data-processed/samples-passed-qc.csv') %>%
@@ -30,9 +30,7 @@ income <- demo %>%
   )
 
 # combine all data together
-characteristics <- sample %>%
-  # rename participant id for downstream joining
-  rename(pearls_id = subjectid) %>%
+characteristics <- dnam_age %>%
   # add in caregiver education at baseline
   left_join(income, by = 'pearls_id') %>%
   # format sex and PEARLS variables
