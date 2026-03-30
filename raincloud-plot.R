@@ -43,17 +43,25 @@ clean_data <- ead %>%
 
 # data visualization
 ################################################################################
-# Skin & Blood clock in blood samples
-plot <- clean_data %>%
-  filter(Tissue == 'Blood') %>%
-  ggplot(aes(x = Timepoint, y = Horvath2Resid)) +
+# function that generates EAD raincloud plot for given clock and tissue type
+raincloud <- function(df, # data of interest
+                      tissue, # (string) tissue type
+                      clock # clock used to generate DNAm age for EAD
+                      ){
   
+  df %>%
+  filter(Tissue == tissue) %>% # plot data from specified tissue type only
+  ggplot(aes(x = Timepoint, # show EAD distribution at each timepoint
+             y = !!sym(clock) # plot EAD from specified clock
+             )
+         ) +
+
   # boxplot
   geom_boxplot(color = 'darkgrey', outlier.shape = NA, width = 0.1) +
-  
+
   # paired lines that connect same-participant dots between time A and time B
   geom_line(aes(group = subjectid, color = pearls), alpha = 0.7) +
-  
+
   # 1 - half violin density shading (baseline - left)
   gghalves::geom_half_violin(
     data = ~ filter(.x, Timepoint == 'Baseline'),
@@ -65,7 +73,7 @@ plot <- clean_data %>%
     adjust = 0.5,
     trim = TRUE
   ) +
-  
+
   # 2 - half violin, need 2nd call of this to do RHS of plot (follow-up - right)
   gghalves::geom_half_violin(
     data = ~ filter(.x, Timepoint == "Follow-up"),
@@ -77,20 +85,35 @@ plot <- clean_data %>%
     adjust = 0.5,
     trim = TRUE
   ) +
-  
+
   # individual participant data points, could add a geom_jitter to add X noise
   geom_point(aes(color = pearls), alpha = 0.6) +
-  
+
   labs(
     title = "Epigenetic age deviation (EAD) from chronological age across time",
-    subtitle = 'Skin & Blood clock in blood samples',
     y = "EAD (years)",
     x = "Timepoint",
     color = "Timepoint",
     fill = "Timepoint"
   ) +
-  
+
   theme_classic() +
   theme(legend.position = "none")
+  
+}
 
-plot
+# Skin & Blood clock in blood samples
+sb_blood <- raincloud(clean_data, 'Blood', 'Horvath2Resid') +
+  labs(subtitle = 'Skin & Blood clock in blood samples')
+
+# Skin & Blood clock in buccal samples
+sb_buccal <- raincloud(clean_data, 'Buccal', 'Horvath2Resid') +
+  labs(subtitle = 'Skin & Blood clock in buccal samples')
+
+# PedBE clock in blood samples
+pbe_blood <- raincloud(clean_data, 'Blood', 'PedBEResid') +
+  labs(subtitle = 'PedBE clock in blood samples')
+
+# PedBE clock in buccal samples
+pbe_buccal <- raincloud(clean_data, 'Buccal', 'PedBEResid') +
+  labs(subtitle = 'PedBE clock in buccal samples')
