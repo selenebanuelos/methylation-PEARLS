@@ -7,6 +7,7 @@
 # setup
 library(tidyverse)
 library(gghalves)
+library(patchwork)
 
 # import data ##################################################################
 # epigenetic age deviation (EAD) residuals
@@ -89,57 +90,82 @@ raincloud <- function(df, # data of interest
   # individual participant data points, could add a geom_jitter to add X noise
   geom_point(aes(color = pearls), alpha = 0.6) +
 
+  # formatting
   labs(
-    title = "Epigenetic age deviation (EAD) from chronological age across time",
-    y = "EAD (years)",
+    y = 'EAD (years)',
     x = "Timepoint",
     color = "PEARLS"
-  ) +
-
+    ) +
+    
+  scale_y_continuous(breaks = c(-2, 0, 2, 4),
+                     limits = c(-2.5, 4.5)
+                     ) +
+    
   theme_classic() +
   theme(legend.position = "bottom")
   
 }
 
-# Skin & Blood clock in blood samples
-sb_blood <- raincloud(clean_data, 'Blood', 'Horvath2Resid') +
-  labs(subtitle = 'Skin & Blood clock in blood samples')
-
-# Skin & Blood clock in buccal samples
-sb_buccal <- raincloud(clean_data, 'Buccal', 'Horvath2Resid') +
-  labs(subtitle = 'Skin & Blood clock in buccal samples')
-
 # PedBE clock in blood samples
 pbe_blood <- raincloud(clean_data, 'Blood', 'PedBEResid') +
-  labs(subtitle = 'PedBE clock in blood samples')
+  labs(title = 'Blood epigenetic age deviation (EAD) from chronological age across time',
+       subtitle = 'PedBE')
+
+# Skin & Blood clock in blood samples
+sb_blood <- raincloud(clean_data, 'Blood', 'Horvath2Resid') +
+  labs(subtitle = 'Skin & Blood') 
+
+# add blood plots together
+blood_plots <- pbe_blood + sb_blood
 
 # PedBE clock in buccal samples
 pbe_buccal <- raincloud(clean_data, 'Buccal', 'PedBEResid') +
-  labs(subtitle = 'PedBE clock in buccal samples')
+  labs(title = "Buccal epigenetic age deviation (EAD) from chronological age across time",
+       subtitle = 'PedBE')
+
+# Skin & Blood clock in buccal samples
+sb_buccal <- raincloud(clean_data, 'Buccal', 'Horvath2Resid') +
+  labs(subtitle = 'Skin & Blood')
+
+# add buccal plots together
+buccal_plots <- pbe_buccal + sb_buccal
 
 # output 
 ################################################################################
-# save plots as PNG in figures folder
-ggsave('figures/raincloud-ead-horvath2-blood.png', 
-       plot = sb_blood,
-       width = 5.97,
-       height = 4.5,
+# save tissue-combined plots as PNG in figures folder
+ggsave('figures/raincloud_ead_blood.png',
+       plot = blood_plots,
+       width = 13,
+       height = 5,
        units = 'in')
 
-ggsave('figures/raincloud-ead-horvath2-buccal.png', 
-       plot = sb_buccal,
-       width = 5.97,
-       height = 4.5,
+ggsave('figures/raincloud_ead_buccal.png',
+       plot = buccal_plots,
+       width = 13,
+       height = 5,
        units = 'in')
 
-ggsave('figures/raincloud-ead-pedbe-blood.png', 
-       plot = pbe_blood,
-       width = 5.97,
-       height = 4.5,
-       units = 'in')
-
-ggsave('figures/raincloud-ead-pedbe-buccal.png', 
-       plot = pbe_buccal,
-       width = 5.97,
-       height = 4.5,
-       units = 'in')
+# save all plots individually
+# ggsave('figures/raincloud-ead-horvath2-blood.png', 
+#        plot = sb_blood,
+#        width = 5.97,
+#        height = 4.5,
+#        units = 'in')
+# 
+# ggsave('figures/raincloud-ead-horvath2-buccal.png', 
+#        plot = sb_buccal,
+#        width = 5.97,
+#        height = 4.5,
+#        units = 'in')
+# 
+# ggsave('figures/raincloud-ead-pedbe-blood.png', 
+#        plot = pbe_blood,
+#        width = 5.97,
+#        height = 4.5,
+#        units = 'in')
+# 
+# ggsave('figures/raincloud-ead-pedbe-buccal.png', 
+#        plot = pbe_buccal,
+#        width = 5.97,
+#        height = 4.5,
+#        units = 'in')
