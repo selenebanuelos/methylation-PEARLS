@@ -93,12 +93,11 @@ raincloud <- function(df, # data of interest
     title = "Epigenetic age deviation (EAD) from chronological age across time",
     y = "EAD (years)",
     x = "Timepoint",
-    color = "Timepoint",
-    fill = "Timepoint"
+    color = "PEARLS"
   ) +
 
   theme_classic() +
-  theme(legend.position = "none")
+  theme(legend.position = "bottom")
   
 }
 
@@ -117,3 +116,30 @@ pbe_blood <- raincloud(clean_data, 'Blood', 'PedBEResid') +
 # PedBE clock in buccal samples
 pbe_buccal <- raincloud(clean_data, 'Buccal', 'PedBEResid') +
   labs(subtitle = 'PedBE clock in buccal samples')
+
+# output 
+################################################################################
+# save plots as PNG in figures folder
+ggsave('figures/raincloud-ead-horvath2-blood.png', 
+       plot = sb_blood,
+       width = 5.97,
+       height = 4.5,
+       units = 'in')
+
+ggsave('figures/raincloud-ead-horvath2-buccal.png', 
+       plot = sb_buccal,
+       width = 5.97,
+       height = 4.5,
+       units = 'in')
+
+ggsave('figures/raincloud-ead-pedbe-blood.png', 
+       plot = pbe_blood,
+       width = 5.97,
+       height = 4.5,
+       units = 'in')
+
+ggsave('figures/raincloud-ead-pedbe-buccal.png', 
+       plot = pbe_buccal,
+       width = 5.97,
+       height = 4.5,
+       units = 'in')
