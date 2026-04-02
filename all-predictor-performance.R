@@ -66,7 +66,7 @@ joint <- predictions %>%
             by = 'specimenid'
             )
 
-# calculate & plot correlations between epigenetic and chronological ages 
+# calculate correlation between epigenetic and chronological ages 
 ################################################################################
 # calculate correlation within blood sample data
 blood_corr_horvath2 <- joint %>%
@@ -102,6 +102,8 @@ buccal_corr_pedbe <- joint %>%
          measure2 = 'age',
          dataset = .)
 
+# data visualization 
+################################################################################
 # bar plots showing correlation between epigenetic & chrono age in blood
 blood_corr %>%
   # format numbers

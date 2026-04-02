@@ -6,6 +6,7 @@
 # setup
 library(dplyr)
 library(ggplot2)
+library(rmcorr) # calculate correlation for repeated measures
 
 # import data
 ################################################################################
