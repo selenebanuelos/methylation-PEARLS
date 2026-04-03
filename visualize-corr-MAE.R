@@ -1,7 +1,8 @@
 ### Author: Selene Banuelos
 ### Date: 1/22/2026
-### Description: Visualize correlations between DNAm and chronological age (with
-### scatter plots) for predictions generated using PedBE and Horvath2 clocks
+### Description: Create scatterplots to visualize correlations between DNAm age
+### and chronological age for predictions generated using PedBE & Horvath2 clocks
+### Calculate median absolute error and add to plots
 
 # setup
 library(dplyr)
@@ -24,7 +25,7 @@ ages_long <- DNAm_age %>%
     values_to = 'dnam_age'
   ) %>%
   # create categorical ACEs variable
-  mutate(aces = case_when(aces_baseline == 0 ~ 'no',
+  mutate(pearls = case_when(aces_baseline == 0 ~ 'no',
                           aces_baseline >= 5 ~ 'high'
                           )
          )
@@ -33,45 +34,31 @@ ages_long <- DNAm_age %>%
 ################################################################################
 # create scatter plots with regression line to display correlation between
 # epigenetic age and chronological age across both timepoints for each tissue
-
-# blood samples
-ages_long %>%
+plot <- ages_long %>%
   # only plot data from blood samples
-  filter(tissue == 'blood') %>%
   ggplot(aes(x = age,
              y = dnam_age
              )
          ) +
+  
   # scatterplot showing relationship between DNAm age and chrono age
-  geom_point(
-    aes(color = aces) # color code points by ACEs status
-    ) +
+  geom_point(aes(color = pearls)) + # color code points by ACEs status
+  
   # add regression line to show correlation
   stat_smooth(method = 'lm',
               formula = y ~ x,
               geom = 'smooth'
               ) +
+  
   # stratify plot by epigenetic clock
-  facet_wrap(~clock) + 
-  ggtitle('All blood samples')
-
-# buccal samples
-ages_long %>%
-  # only plot data from blood samples
-  filter(tissue == 'buccal') %>%
-  ggplot(aes(x = age,
-             y = dnam_age
-  )
-  ) +
-  # scatterplot showing relationship between DNAm age and chrono age
-  geom_point(
-    aes(color = aces) # color code points by ACEs status
-  ) +
-  # add regression line to show correlation
-  stat_smooth(method = 'lm',
-              formula = y ~ x,
-              geom = 'smooth'
-  ) +
-  # stratify plot by epigenetic clock
-  facet_wrap(~clock) + 
-  ggtitle('All buccal samples')
+  facet_grid(vars(clock), vars(tissue)) + 
+  
+  # add in reference line showing 100% correlation
+  geom_abline(intercept = 0, slope = 1, linetype = 'dashed', color = 'darkgrey') +
+  
+  # formatting
+  labs(title = 'Correlation and median absolute error between epigenetic and chronological age ',
+       x = 'Chronological Age',
+       y = 'Epigenetic Age') +
+  theme_minimal()
+plot
