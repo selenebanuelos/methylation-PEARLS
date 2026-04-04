@@ -160,5 +160,5 @@ followup
 # output
 ################################################################################
 # save plot as PNG
-ggsave('figures/corr-mae-scatterplot-baseline.png',
-       plot = baseline)
+ggsave('figures/corr-mae-scatterplot-baseline.png', plot = baseline)
+ggsave('figures/corr-mae-scatterplot-followup.png', plot = followup)
