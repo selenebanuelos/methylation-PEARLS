@@ -114,3 +114,8 @@ make_ci(blood_horvath2_int, 'Skin & Blood in blood samples')
 make_ci(buccal_horvath2_int, 'Skin & Blood in buccal samples')
 make_ci(blood_ped_be_int, 'PedBE in blood samples')
 make_ci(buccal_ped_be_int, 'PedBE in buccal samples')
+
+# output
+################################################################################
+# save final dataset used in analysis
+write.csv(clean, 'data-processed/analysis-ready-dataset.csv', row.names = FALSE)
