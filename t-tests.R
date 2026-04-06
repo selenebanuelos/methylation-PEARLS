@@ -38,13 +38,13 @@ combined <- ead %>%
   mutate(pearls = case_when(aces_baseline == 0 ~ 'no',
                             aces_baseline >= 5 ~ 'high'))
 
-# calculate absolute difference in EAD
+# calculate difference in EAD
 ead_diff <- combined %>%
   pivot_wider(id_cols = c(subjectid, Tissue, pearls),
               names_from = Timepoint,
               values_from = c(Horvath2Resid, PedBEResid)
               ) %>%
-  # calculate absolute difference in EAD
+  # calculate difference in EAD
   mutate(horvath2_diff = (Horvath2Resid_T5 - Horvath2Resid_T2),
          pedbe_diff = (PedBEResid_T5 - PedBEResid_T2)
   )

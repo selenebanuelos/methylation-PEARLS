@@ -1,6 +1,6 @@
-### Author: Selene Banuelos
+### Author: Selene Banuelos adapted code by Mike Marin
 ### Date: 4/5/2025
-### Description: Permutation test 
+### Description: Permutation test
 
 # setup
 library(dplyr)
@@ -51,66 +51,164 @@ ead_diff <- combined %>%
          pedbe_diff = (PedBEResid_T5 - PedBEResid_T2)
   )
 
-# generate permutation test statistics
+# create function that performs permutation test
 ################################################################################
-# set seed for reproducibility
+permutation_test <- function(df, # (dataframe) data
+                             response, # (string) response variable to shuffle
+                             p_n = 100000 # number of permutation samples to take
+                             ){
+  
+  # generate permutation samples ###############################################
+  # the number of observations to sample (same size as original sample)
+  n <- nrow(df)
+  
+  # number of permutation samples to take
+  p <- 100000 
+  
+  # vector of the variable we're shuffling/sampling from (response variable)
+  # could shuffle the labels (PEARLS group) instead
+  var <- pull(df, response)
+  
+  # initialize a matrix (with all zeros) to store the permutation data
+  perm_samples <- matrix(0, nrow = n, ncol = p_n) # each col is a permutation sample 
+
+  # generate p_n permutation samples
+  for (i in 1:p_n){
+    
+    # use sample() to take samples without replacement from original dataset
+    perm_samples[,i] <- sample(var, size = n, replace = FALSE)
+    
+  }
+
+  # calculate test stats for each permutation sample ###########################
+  # initialize vector to store all of the test-stats
+  perm_test_stats <- rep(0, p_n) # vector same length as number of permutation samples
+  
+  # loop through and calculate the test statistics
+  for (i in 1:p_n){
+    
+    # calculate test-stat: difference in mean EAD between PEARLS groups
+    perm_test_stats[i] <- mean(perm_samples[df$pearls == 'no', i]) -
+      mean(perm_samples[df$pearls == 'high', i])
+    # mean EAD in no PEARLS participants - mead EAD in high PEARLS participants
+  }
+
+  # calculate permutation p-value ##############################################
+  # what is the probability of getting the observed test statistic or more 
+  # extreme value if the null hypothesis of no difference is true?
+  
+  # get observed mean EAD in no PEARLS participants 
+  mean_no <- filter(df, pearls == 'no') %>%
+    pull(response) %>%
+    mean()
+  
+  # get observed mean EAD in high PEARLS participants
+  mean_high <- filter(df, pearls == 'high') %>%
+    pull(response) %>%
+    mean()
+  
+  # calculate observed test statistic 
+  obs_test_stat <- mean_no - mean_high
+  
+  # p-value = # of perm test-stats >= observed test stat/ total # perm test-stats
+  p_value <- sum(perm_test_stats >= obs_test_stat) / p_n
+  
+  return(sapply(c(obs_test_stat, p_value), round, digits = 2))
+  
+}
+
+# conduct permutation tests in blood samples
+################################################################################
+# Skin & Blood clock, baseline
+set.seed(123) # set seed for reproducibility
+bl_sb_baseline <- filter(combined, 
+                         Tissue == 'Blood',
+                         Timepoint == 'T2') %>%
+  permutation_test(., 'Horvath2Resid')
+
+# Skin & Blood clock, follow-up
+set.seed(123)
+bl_sb_followup <- filter(combined, 
+                         Tissue == 'Blood',
+                         Timepoint == 'T5') %>%
+  permutation_test(., 'Horvath2Resid')
+
+# Skin & Blood clock, followup-baseline
+set.seed(123)
+bl_sb_diff <- filter(ead_diff,
+                      Tissue == 'Blood',
+                      !is.na(horvath2_diff)) %>%
+  permutation_test(., 'horvath2_diff')
+
+# PedBE clock, baseline
 set.seed(123) 
+bl_pbe_baseline <- filter(combined, 
+                         Tissue == 'Blood',
+                         Timepoint == 'T2') %>%
+  permutation_test(., 'PedBEResid')
 
-# the number of observations to sample (same size as original sample)
-n <- nrow(combined)
+# PedBE clock, follow-up
+set.seed(123) 
+bl_pbe_followup <- filter(combined, 
+                          Tissue == 'Blood',
+                          Timepoint == 'T5') %>%
+  permutation_test(., 'PedBEResid')
 
-# number of permutation samples to take
-p <- 100000 
+# PedBE clock, followup-baseline
+set.seed(123)
+bl_pbe_diff <- filter(ead_diff,
+                      Tissue == 'Blood',
+                      !is.na(pedbe_diff)) %>%
+  permutation_test(., 'pedbe_diff')
 
-# the variable we're shuffling (response variable here)
-# could shuffle the labels (PEARLS group) instead
-var <- combined$Horvath2Resid
-
-# initialize a matrix to store the permutation data
-perm_samples <- matrix(0, nrow = n, ncol = p) # each col is a permutation sample 
-
-# generate p permutation samples
-for (i in 1:p){
-  
-  # use sample() to take samples without replacement from original dataset
-  perm_samples[,i] <- sample(var, size = n, replace = FALSE)
-  
-}
-
-# use a loop to calculate test statistics for each sample (diff in means)
-# initialize vectors to store all of the test-stats
-test_stat <- rep(0, p) # vector same length as number of permutation samples
-
-# loop through and calculate the test statistics
-for (i in 1:p){
-  
-  # calculate test-stat: difference in mean EAD between PEARLS groups
-  test_stat[i] <- mean(perm_samples[combined$pearls == 'no', i]) -
-    mean(perm_samples[combined$pearls == 'high', i])
-  # mean EAD in no PEARLS participants - mead EAD in high PEARLS participants
-  
-}
-
-# calculate permutation p-value
+# conduct permutation tests in buccal samples
 ################################################################################
+# Skin & Blood clock, baseline
+set.seed(123) # set seed for reproducibility
+bu_sb_baseline <- filter(combined, 
+                         Tissue == 'Buccal',
+                         Timepoint == 'T2') %>%
+  permutation_test(., 'Horvath2Resid')
 
-# what is the probability of getting the observed test statistic (diff in mean EAD)
-# or more extreme if the null hypothesis of no difference is true?
+# Skin & Blood clock, follow-up
+set.seed(123)
+bu_sb_followup <- filter(combined, 
+                         Tissue == 'Buccal',
+                         Timepoint == 'T5') %>%
+  permutation_test(., 'Horvath2Resid')
 
-# get observed test statistic 
-obs_test_stat <- mean(combined[combined$pearls == 'no', 'Horvath2Resid']) -
-  mean(combined[combined$pearls == 'high', 'Horvath2Resid'])
+# Skin & Blood clock, followup-baseline
+set.seed(123)
+bu_sb_diff <- filter(ead_diff,
+                      Tissue == 'Buccal',
+                      !is.na(horvath2_diff)) %>%
+  permutation_test(., 'horvath2_diff')
 
-# p-value = # of perm test-stats >= observed test stat/ total # perm test-stats
-p_value <- sum(test_stat >= obs_test_stat) / length(test_stat)
+# PedBE clock, baseline
+set.seed(123) 
+bu_pbe_baseline <- filter(combined, 
+                          Tissue == 'Buccal',
+                          Timepoint == 'T2') %>%
+  permutation_test(., 'PedBEResid')
+
+# PedBE clock, follow-up
+set.seed(123) 
+bu_pbe_followup <- filter(combined, 
+                          Tissue == 'Buccal',
+                          Timepoint == 'T5') %>%
+  permutation_test(., 'PedBEResid')
+
+# PedBE clock, followup-baseline
+set.seed(123)
+bu_pbe_diff <- filter(ead_diff,
+                      Tissue == 'Buccal',
+                      !is.na(pedbe_diff)) %>%
+  permutation_test(., 'pedbe_diff')
 
 # visualize distribution of permutation test statistics
 ################################################################################
-perm_test_density <- with(density(test_stat), data.frame(x,y))
-
-ggplot(perm_test_density, aes(x = x, y = y)) +
-  geom_line() +
-  geom_area(aes(x = ifelse(x > p_value, x, 0)), fill = 'red')
-
-
-  geom_vline(xintercept = obs_test_stat, color = 'red', linewidth = 1)
+# perm_test_density <- with(density(test_stat), data.frame(x,y))
+# 
+# ggplot(perm_test_density, aes(x = x, y = y)) +
+#   geom_line() +
+#   geom_area(aes(x = ifelse(x > p_value, x, 0)), fill = 'red')
