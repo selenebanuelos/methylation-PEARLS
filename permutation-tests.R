@@ -88,9 +88,9 @@ permutation_test <- function(df, # (dataframe) data
   for (i in 1:p_n){
     
     # calculate test-stat: difference in mean EAD between PEARLS groups
-    perm_test_stats[i] <- mean(perm_samples[df$pearls == 'no', i]) -
-      mean(perm_samples[df$pearls == 'high', i])
-    # mean EAD in no PEARLS participants - mead EAD in high PEARLS participants
+    perm_test_stats[i] <- mean(perm_samples[df$pearls == 'high', i]) -
+      mean(perm_samples[df$pearls == 'no', i])
+    # mean EAD in high PEARLS participants - mead EAD in no PEARLS participants
   }
 
   # calculate permutation p-value ##############################################
@@ -108,7 +108,7 @@ permutation_test <- function(df, # (dataframe) data
     mean()
   
   # calculate observed test statistic 
-  obs_test_stat <- mean_no - mean_high
+  obs_test_stat <- mean_high - mean_no
   
   # p-value = # of perm test-stats >= observed test stat/ total # perm test-stats
   p_value <- sum(perm_test_stats >= obs_test_stat) / p_n
