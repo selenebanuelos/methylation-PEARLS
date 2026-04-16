@@ -1,4 +1,4 @@
-### Author: Selene Banuelos adapted from code from Amy Inkster
+### Author: Selene Banuelos adapted from code by Amy Inkster
 ### Date: 3/26/2026
 ### Description: Visualize distribution of epigenetic age deviation residuals 
 ### at baseline and follow-up as well as individual trajectories, colored by 
@@ -102,7 +102,15 @@ raincloud <- function(df, # data of interest
                      ) +
     
   theme_classic() +
-  theme(legend.position = "bottom")
+  theme(legend.position = 'bottom',
+        # uncomment below for poster formatting
+        legend.title = element_blank(),
+        text = element_text(size = 24),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        plot.title = element_blank(),
+        plot.subtitle = element_blank()
+        )
   
 }
 
@@ -135,13 +143,13 @@ buccal_plots <- pbe_buccal + sb_buccal
 # save tissue-combined plots as PNG in figures folder
 ggsave('figures/raincloud_ead_blood.png',
        plot = blood_plots,
-       width = 13,
+       width = 7,
        height = 5,
        units = 'in')
 
 ggsave('figures/raincloud_ead_buccal.png',
        plot = buccal_plots,
-       width = 13,
+       width = 7,
        height = 5,
        units = 'in')
 

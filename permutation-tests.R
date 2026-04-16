@@ -17,6 +17,11 @@ ead <- read.csv('data-processed/methylation-predictions.csv')
 blood_info <- readRDS('data-raw/Final_SampleInfo_Blood_n39.rds')
 buccal_info <- readRDS('data-raw/Final_SampleInfo_Buccal_n38.rds')
 
+# participant ages at each visit
+ages <- read.csv('data-raw/pearls_data_LauraDiaz_2025_11_20.csv') %>%
+  select(pearls_id, collectionage_t2, collectionage_t5) %>%
+  rename(subjectid = pearls_id)
+
 # data wrangling 
 ################################################################################
 # sample information variables
@@ -40,16 +45,23 @@ combined <- ead %>%
   mutate(pearls = case_when(aces_baseline == 0 ~ 'no',
                             aces_baseline >= 5 ~ 'high'))
 
-# calculate absolute difference in EAD
+# calculate difference in EAD and EAD trajectory
 ead_diff <- combined %>%
   pivot_wider(id_cols = c(subjectid, Tissue, pearls),
               names_from = Timepoint,
               values_from = c(Horvath2Resid, PedBEResid)
   ) %>%
-  # calculate absolute difference in EAD
+  # add in subject age at each visit
+  left_join(ages, by = 'subjectid') %>%
+  # calculate difference in EAD
   mutate(horvath2_diff = (Horvath2Resid_T5 - Horvath2Resid_T2),
          pedbe_diff = (PedBEResid_T5 - PedBEResid_T2)
-  )
+  ) %>%
+  # calculate time between baseline and follow-up visits
+  mutate(time_between = collectionage_t5 - collectionage_t2) %>%
+  # calculate EAD trajectory (follow-up EAD - baseline EAD)/time between visits
+  mutate(horvath2_trajectory = horvath2_diff/time_between,
+         pedbe_trajectory = pedbe_diff/time_between)
 
 # create function that performs permutation test
 ################################################################################
@@ -140,6 +152,13 @@ bl_sb_diff <- filter(ead_diff,
                       !is.na(horvath2_diff)) %>%
   permutation_test(., 'horvath2_diff')
 
+# SKin & Blood clock, EAD trajectory
+set.seed(123)
+bl_sb_traj <- filter(ead_diff,
+                     Tissue == 'Blood',
+                     !is.na(horvath2_trajectory)) %>%
+  permutation_test(., 'horvath2_trajectory')
+
 # PedBE clock, baseline
 set.seed(123) 
 bl_pbe_baseline <- filter(combined, 
@@ -160,6 +179,13 @@ bl_pbe_diff <- filter(ead_diff,
                       Tissue == 'Blood',
                       !is.na(pedbe_diff)) %>%
   permutation_test(., 'pedbe_diff')
+
+# PedBE clock, EAD trajectory
+set.seed(123)
+bl_pbe_traj <- filter(ead_diff,
+                     Tissue == 'Blood',
+                     !is.na(pedbe_trajectory)) %>%
+  permutation_test(., 'pedbe_trajectory')
 
 # conduct permutation tests in buccal samples
 ################################################################################
@@ -184,6 +210,13 @@ bu_sb_diff <- filter(ead_diff,
                       !is.na(horvath2_diff)) %>%
   permutation_test(., 'horvath2_diff')
 
+# Skin & Blood clock, EAD trajectory
+set.seed(123)
+bu_sb_traj <- filter(ead_diff,
+                      Tissue == 'Buccal',
+                      !is.na(horvath2_trajectory)) %>%
+  permutation_test(., 'horvath2_trajectory')
+
 # PedBE clock, baseline
 set.seed(123) 
 bu_pbe_baseline <- filter(combined, 
@@ -204,6 +237,13 @@ bu_pbe_diff <- filter(ead_diff,
                       Tissue == 'Buccal',
                       !is.na(pedbe_diff)) %>%
   permutation_test(., 'pedbe_diff')
+
+# PedBE clock, EAD trajectory
+set.seed(123)
+bu_pbe_traj <- filter(ead_diff,
+                      Tissue == 'Buccal',
+                      !is.na(pedbe_trajectory)) %>%
+  permutation_test(., 'pedbe_trajectory')
 
 # visualize distribution of permutation test statistics
 ################################################################################
