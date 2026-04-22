@@ -244,11 +244,3 @@ bu_pbe_traj <- filter(ead_diff,
                       Tissue == 'Buccal',
                       !is.na(pedbe_trajectory)) %>%
   permutation_test(., 'pedbe_trajectory')
-
-# visualize distribution of permutation test statistics
-################################################################################
-# perm_test_density <- with(density(test_stat), data.frame(x,y))
-# 
-# ggplot(perm_test_density, aes(x = x, y = y)) +
-#   geom_line() +
-#   geom_area(aes(x = ifelse(x > p_value, x, 0)), fill = 'red')
