@@ -7,6 +7,8 @@
 library(dplyr)
 library(tidyr)
 library(gee)
+library(ggplot2)
+options(scipen = 999)
 
 # import data 
 ################################################################################
@@ -62,21 +64,27 @@ set.seed(123)
 # specify number of bootstrap samples
 nb <- 10000
 
-# initial model fit to get names of coefficient estimates (tissue type doesn't matter)
-initial <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
+# fit model with observed data
+obs_blood_fit <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
               id = pearls_id,
               data = filter(data, tissue == 'blood'),
               family = 'gaussian',
               corstr = 'exchangeable')
 
+obs_buccal_fit <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
+                     id = pearls_id,
+                     data = filter(data, tissue == 'buccal'),
+                     family = 'gaussian',
+                     corstr = 'exchangeable')
+
 # specify number of columns in bootstrap coef matrix (# of covariates + 1 for error codes)
-p <- length(coef(initial)) + 1
+p <- length(coef(obs_blood_fit)) + 1
 
 # create empty matrix to save coefficients from each bootstrap sample
 coef_mat <- matrix(0, nb, p)
 
 # need to name matrix with variable names corresponding to coefficients
-colnames(coef_mat) <- c(names(initial$coefficients), 'error_code')
+colnames(coef_mat) <- c(names(obs_blood_fit$coefficients), 'error_code')
 
 # split data into no/high adversity datasets to do stratified boostrap sampling
 ################################################################################
@@ -159,5 +167,79 @@ blood_mat <- coef_mat[,] <- do.call(rbind, lapply(seq_len(nb), boot_sample, bloo
 buccal_mat <- coef_mat[,] <- do.call(rbind, lapply(seq_len(nb), boot_sample, buccal_no, buccal_high))
 
 # save matrices
-save(blood_mat, buccal_mat, file = "data-processed/bootstrap_estimates.RData")
+save(blood_mat, buccal_mat, file = "data-processed/bootstrap-estimates.RData")
 
+# check boostrap distributions for skew
+################################################################################
+check_bias <- function(boot_mat, # matrix of bootstrapped estimates
+                       obs_fit # model object fit with observed data
+                       ){
+
+  # calculate bias: mean(bootstrap estimates) - observed estimate
+  point <- round(
+    obs_fit$coefficients["pearlshigh"], 
+    digits = 3
+    )
+  cat("Point estimate:", point, "\n")
+  
+  boot_mean <- round(
+    mean(boot_mat[, "pearlshigh"], na.rm = TRUE), 
+    digits = 3
+    )
+  cat("Bias (mean bootsrap estimate - observed point estimate):", boot_mean - point, "\n")
+  cat("Skewness: sign tells you which tail is longer\n")
+  
+  # visualize bootstrap coefficient estimate distributions
+  boot_mat %>%
+    as.data.frame() %>%
+    # remove estimates from any resamples that produced errors when fitting model
+    filter(V7 == 0) %>%
+    select(-V7) %>%
+    # make data longer for plotting
+    pivot_longer(
+      cols = everything(),
+      names_to = "Covariate",
+      values_to = "Estimate"
+    ) %>%
+    # plot distributions of all covariates
+    ggplot(aes(x = Estimate)) +
+    geom_density() +
+    facet_wrap(~Covariate)
+}
+
+check_bias(blood_mat, obs_blood_fit)
+check_bias(buccal_mat, obs_buccal_fit)
+# little bit of bias in both bootstrapped distributions of estimate
+
+# calculate bias-corrected and accelerated confidence intervals 
+################################################################################
+# can't use coxed::bca() for this reason: https://stackoverflow.com/questions/55401615/r-calculate-bca-from-vector-of-bootstrapped-results
+# use rms::bootBCa() to generate BCa bootstrap on existing boostrap replicates
+library(rms)
+
+# get coefficient estimates from obsrved sample
+obs_est_blood <- round(obs_blood_fit$coefficients, digits = 3)
+obs_est_buccal <- round(obs_buccal_fit$coefficients, digits = 3)
+
+# create matrix with only bootstrap estimates (remove error column)
+boot_est_blood <- blood_mat[, colnames(blood_mat) != '']
+boot_est_buccal <- buccal_mat[, colnames(buccal_mat) != '']
+
+# generate BCa 95% CI that corrects for skew in bootstrapped distribution
+bootBCa(estimate = obs_est_blood, 
+        estimates = boot_est_blood,
+        type = 'bca',
+        n = 39, # need to double check this, is this asking for # of independent clusters or total observations
+        seed = .Random.seed, # uses random seed set before bootstrap. where is this being used?
+        conf.int = 0.95
+)
+print(obs_est_blood)
+
+bootBCa(estimate = obs_est_buccal, 
+        estimates = boot_est_buccal,
+        type = 'bca',
+        n = 39, # need to double check this, is this asking for # of independent clusters or total observations
+        seed = .Random.seed, # uses random seed set before bootstrap. where is this being used?
+        conf.int = 0.95
+)
+print(obs_est_buccal)

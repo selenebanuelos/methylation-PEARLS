@@ -15,11 +15,13 @@ blood_cells <- readRDS('data-raw/Final_SampleInfo_Blood_n39.rds') %>%
   # only keep cell type proportion columns
   select(specimenid,Bas:Treg) %>%
   # calculate 'other' cell type proportion 
-  mutate(other = 1 - rowSums(select(., !specimenid)))
+  mutate(undetermined = 1 - rowSums(select(., !specimenid)))
 
 buccal_cells <- readRDS('data-raw/Final_SampleInfo_Buccal_n38.rds') %>%
   select(specimenid, Epi:Eosino) %>%
-  mutate(other = 1 - rowSums(select(., !specimenid)))
+  mutate(undetermined = 1 - rowSums(select(., !specimenid)),
+         IC = rowSums(select(., B, NK, CD4T, CD8T, Mono, Neutro, Eosino))
+         )
 
 # sample information
 sample <- read.csv('data-processed/pearls-acesmatchingbysexage.csv') %>%
@@ -45,7 +47,7 @@ blood <- sample %>%
              by = 'specimenid') %>%
   # make data longer for plotting
   pivot_longer(
-    cols = Bas:other,
+    cols = Bas:undetermined,
     names_to = 'cell_type',
     values_to = 'proportion'
   )
@@ -56,7 +58,7 @@ buccal <- sample %>%
   right_join(buccal_cells,
              by = 'specimenid') %>%
   pivot_longer(
-    cols = Epi:other,
+    cols = Epi:undetermined,
     names_to = 'cell_type',
     values_to = 'proportion'
   )
