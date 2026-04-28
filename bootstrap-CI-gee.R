@@ -243,3 +243,11 @@ bootBCa(estimate = obs_est_buccal,
         conf.int = 0.95
 )
 print(obs_est_buccal)
+
+### I don't think these are correct since it's unclear what to supply for the 
+### 'n' argument - total observations in original sample or the number of 
+### independent clusters. Asked Alan and he said he'll look into it. He said that
+### for now, just use 2.5th and 97.5th quantiles of the bootstrap distribution 
+### to get the 95% CI
+### also need to double check if i should remove any bootstrap estimates from 
+### model fits that generated error codes
