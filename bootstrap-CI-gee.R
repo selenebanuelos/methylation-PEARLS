@@ -1,5 +1,5 @@
 ### Author: Selene Banuelos
-### Date: 4/5/2025
+### Date: 4/5/2026
 ### Description: Bootstrap 95% confidence interval for regression coefficient
 ### from marginal model (GEE)
 ### some useful info: https://r-statistics.co/Bootstrap-Confidence-Intervals-in-R.html
