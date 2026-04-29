@@ -2,6 +2,7 @@
 ### Date: 4/5/2025
 ### Description: Bootstrap 95% confidence interval for regression coefficient
 ### from marginal model (GEE)
+### some useful info: https://r-statistics.co/Bootstrap-Confidence-Intervals-in-R.html
 
 # setup
 library(dplyr)
@@ -162,7 +163,7 @@ boot_sample <- function(i, no_df, high_df) {
   
 }
 
-# take nb bootstrap samples and save coefficients in matrix
+# take bootstrap samples and save coefficients in matrix
 blood_mat <- coef_mat[,] <- do.call(rbind, lapply(seq_len(nb), boot_sample, blood_no, blood_high))
 buccal_mat <- coef_mat[,] <- do.call(rbind, lapply(seq_len(nb), boot_sample, buccal_no, buccal_high))
 
@@ -211,43 +212,26 @@ check_bias(blood_mat, obs_blood_fit)
 check_bias(buccal_mat, obs_buccal_fit)
 # little bit of bias in both bootstrapped distributions of estimate
 
-# calculate bias-corrected and accelerated confidence intervals 
+# calculate 95% confidence intervals using 2.5th and 97.5th quantiles
 ################################################################################
-# can't use coxed::bca() for this reason: https://stackoverflow.com/questions/55401615/r-calculate-bca-from-vector-of-bootstrapped-results
-# use rms::bootBCa() to generate BCa bootstrap on existing boostrap replicates
-library(rms)
+# load matrices with bootstrap estimates for blood and buccal samples
+load('data-processed/bootstrap-estimates.RData')
 
-# get coefficient estimates from obsrved sample
-obs_est_blood <- round(obs_blood_fit$coefficients, digits = 3)
-obs_est_buccal <- round(obs_buccal_fit$coefficients, digits = 3)
+# function that builds qunatile-based 95% CI from bootstrap distributions
+quantile_ci <- function(matrix) {
 
-# create matrix with only bootstrap estimates (remove error column)
-boot_est_blood <- blood_mat[, colnames(blood_mat) != '']
-boot_est_buccal <- buccal_mat[, colnames(buccal_mat) != '']
+  # format bootstrap estimates
+  boot_est <- as.data.frame(matrix) %>%
+    # remove estimates from model fits that generated errors
+    filter(V7 == 0) %>%
+    # remove error code variable
+    select(-V7)
+  
+  print(class(boot_est))
+  
+  apply(X = boot_est, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.975))
+}
 
-# generate BCa 95% CI that corrects for skew in bootstrapped distribution
-bootBCa(estimate = obs_est_blood, 
-        estimates = boot_est_blood,
-        type = 'bca',
-        n = 39, # need to double check this, is this asking for # of independent clusters or total observations
-        seed = .Random.seed, # uses random seed set before bootstrap. where is this being used?
-        conf.int = 0.95
-)
-print(obs_est_blood)
-
-bootBCa(estimate = obs_est_buccal, 
-        estimates = boot_est_buccal,
-        type = 'bca',
-        n = 39, # need to double check this, is this asking for # of independent clusters or total observations
-        seed = .Random.seed, # uses random seed set before bootstrap. where is this being used?
-        conf.int = 0.95
-)
-print(obs_est_buccal)
-
-### I don't think these are correct since it's unclear what to supply for the 
-### 'n' argument - total observations in original sample or the number of 
-### independent clusters. Asked Alan and he said he'll look into it. He said that
-### for now, just use 2.5th and 97.5th quantiles of the bootstrap distribution 
-### to get the 95% CI
-### also need to double check if i should remove any bootstrap estimates from 
-### model fits that generated error codes
+# build quantile confidence intervals for estimates
+quantile_ci(blood_mat)
+quantile_ci(buccal_mat)
