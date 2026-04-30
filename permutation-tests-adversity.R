@@ -74,9 +74,6 @@ permutation_test <- function(df, # (dataframe) data
   # the number of observations to sample (same size as original sample)
   n <- nrow(df)
   
-  # number of permutation samples to take
-  p <- 100000 
-  
   # vector of the variable we're shuffling/sampling from (response variable)
   # could shuffle the labels (PEARLS group) instead
   var <- pull(df, response)
