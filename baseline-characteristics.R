@@ -1,7 +1,6 @@
 ### Author: Selene Banuelos
-### Date: 3/16/2025
+### Date: 3/16/2026
 ### Description: Summarize baseline participant characteristics by PEARLS
-### Note: only include samples that passed methylation data QC
 
 # setup
 library(dplyr)
@@ -14,11 +13,6 @@ demo <- read.csv('data-raw/pearls_dataset_2022-07-08.csv')
 
 # DNAm age predictions and sample information
 dnam_age <- read.csv('data-processed/dnam-age-sample-info.csv')
-
-# samples that passed qc
-passed_qc <- read.csv('data-processed/samples-passed-qc.csv') %>%
-  select(specimenid, passed_qc, tissue) %>%
-  mutate(specimenid = as.character(specimenid))
 
 # data wrangling
 ################################################################################
@@ -37,25 +31,25 @@ characteristics <- dnam_age %>%
   mutate(pearls = case_when(aces_baseline == 0 ~ 'None',
                             aces_baseline >= 5 ~ 'High'),
          sex = factor(sex,
-                         levels = c(0,1),
-                         labels = c('Female', 'Male')
-                         ),
+                      levels = c(0,1),
+                      labels = c('Female', 'Male')
+         ),
          income_FPL_100 = factor(income_FPL_100,
                                  levels = c(0,1),
                                  labels = c('No', 'Yes')
-                                 )
+         )
   ) %>%
-  # keep only timepoint 2 (baseline) observations
-  filter(timepoint == 2)
-  
+  # keep only variables we want in table
+  select(pearls_id, sex, age_baseline, income_FPL_100, pearls) %>%
+  distinct()
+
 # create labels for variable names to display in table 
 label(characteristics$age_baseline) <- 'Age (years)'
-label(characteristics$horvath2) <- 'Horvath Skin & Blood DNAm age (years)'
-label(characteristics$ped_be) <- 'PedBE DNAm age (years)'
 label(characteristics$sex) <- 'Sex'
 label(characteristics$income_FPL_100) <- 'Household income below 100% FPL (<25k)'
+label(characteristics$pearls) <- 'PEARLS'
 
 # data visualization ###########################################################
 # table stratified by PEARLS (no/high) status
-table1(~ age_baseline + sex + income_FPL_100 + horvath2 + ped_be | pearls,
+table1(~ age_baseline + sex + income_FPL_100 | pearls,
        data = characteristics)
