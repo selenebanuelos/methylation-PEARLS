@@ -50,8 +50,8 @@ combined <- ead %>%
   # create no PEARLS/high PEARLS groups from PEARLS score
   mutate(pearls = case_when(aces_baseline == 0 ~ 'no',
                             aces_baseline >= 5 ~ 'high')) %>%
-  # this set of test are being done only in male participants
-  filter()
+  # conducting permutation testing only in male participants 
+  filter(sex_.0.F. == 1) # 1 = male
 
 # calculate difference in EAD and EAD trajectory
 ead_diff <- combined %>%
@@ -133,7 +133,13 @@ permutation_test <- function(df, # (dataframe) data
   # p-value = # of perm test-stats >= observed test stat/ total # perm test-stats
   p_value <- sum(perm_test_stats >= obs_test_stat) / p_n
   
-  return(sapply(c(obs_test_stat, p_value), round, digits = 2))
+  # create vector of test statistic and p-value
+  ts_pval <- sapply(c(obs_test_stat, p_value), round, digits = 2)
+  
+  # name vector for clarity
+  names(ts_pval) <- c('Test Statistic', 'P-value')
+  
+  return(ts_pval)
   
 }
 

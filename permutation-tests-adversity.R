@@ -43,7 +43,7 @@ combined <- ead %>%
   full_join(sample_info, by = 'SampleID') %>%
   # create no PEARLS/high PEARLS groups from PEARLS score
   mutate(pearls = case_when(aces_baseline == 0 ~ 'no',
-                            aces_baseline >= 5 ~ 'high'))
+                            aces_baseline >= 5 ~ 'high')) 
 
 # calculate difference in EAD and EAD trajectory
 ead_diff <- combined %>%
@@ -125,7 +125,13 @@ permutation_test <- function(df, # (dataframe) data
   # p-value = # of perm test-stats >= observed test stat/ total # perm test-stats
   p_value <- sum(perm_test_stats >= obs_test_stat) / p_n
   
-  return(sapply(c(obs_test_stat, p_value), round, digits = 2))
+  # create vector of test statistic and p-value
+  ts_pval <- sapply(c(obs_test_stat, p_value), round, digits = 2)
+  
+  # name vector for clarity
+  names(ts_pval) <- c('Test Statistic', 'P-value')
+  
+  return(ts_pval)
   
 }
 
