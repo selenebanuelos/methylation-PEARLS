@@ -7,7 +7,6 @@
 library(dplyr)
 library(tidyr)
 library(gee)
-library(ggplot2)
 options(scipen = 999)
 
 # import data 
@@ -55,21 +54,32 @@ wide_data <- select(data, all_of(analysis_vars)) %>%
     names_glue = "{.value}_{timepoint}"
   )
     
-
 # bootstrapping setup
 ################################################################################
 # fit model with observed data
-obs_blood_fit <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
-              id = pearls_id,
-              data = filter(data, tissue == 'blood'),
-              family = 'gaussian',
-              corstr = 'exchangeable')
+obs_blood_sb <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
+                    id = pearls_id,
+                    data = filter(data, tissue == 'blood'),
+                    family = 'gaussian',
+                    corstr = 'exchangeable')
 
-obs_buccal_fit <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
+obs_blood_pbe <- gee(ped_be ~ age*pearls + pearls + age + sex + income_FPL_100,
+                     id = pearls_id,
+                     data = filter(data, tissue == 'blood'),
+                     family = 'gaussian',
+                     corstr = 'exchangeable')
+
+obs_buccal_sb <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
                      id = pearls_id,
                      data = filter(data, tissue == 'buccal'),
                      family = 'gaussian',
                      corstr = 'exchangeable')
+
+obs_buccal_pbe <- gee(ped_be ~ age*pearls + pearls + age + sex + income_FPL_100,
+                      id = pearls_id,
+                      data = filter(data, tissue == 'buccal'),
+                      family = 'gaussian',
+                      corstr = 'exchangeable')
 
 # split data into no/high adversity datasets to do stratified boostrap sampling
 ################################################################################
@@ -101,7 +111,7 @@ boot_sample <- function(i, no_df, high_df, obs_fit) {
   
   # no_df = blood_no
   # high_df = blood_high
-  # obs_fit = obs_blood_fit
+  # obs_fit = obs_blood_sb
   
   # take sample from no PEARLS participants
   boot_no <- no_df %>%
@@ -130,7 +140,10 @@ boot_sample <- function(i, no_df, high_df, obs_fit) {
     )
 
   # combine samples from no PEARLS and high PEARLS groups
-  boot_all <- bind_rows(boot_no, boot_high)
+  boot_all <- bind_rows(boot_no, boot_high) %>%
+    # use clock that was used in the observed model fit
+    rename(clock = obs_fit$terms[[2]])
+  
   # boot_all = boot_sample_df # bootstrap sample that throws error (not warning)
   # obs_fit = obs_blood_fit
   
@@ -140,7 +153,7 @@ boot_sample <- function(i, no_df, high_df, obs_fit) {
       
       result <- withCallingHandlers(
         gee(
-          horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
+          clock ~ age*pearls + pearls + age + sex + income_FPL_100,
           id      = new_id,
           data    = boot_all,
           family  = "gaussian",
@@ -216,24 +229,46 @@ nb <- 10000
 
 # take bootstrap samples and save estimates + errors/warnings in dataframe
 # blood samples
-blood_boot <- do.call(what = rbind, 
+blood_sb_boot <- do.call(what = rbind, 
                       args = lapply(X = seq_len(nb), # return list of length nb
                                     FUN = boot_sample, # function
                                     blood_no, # function argument 1
                                     blood_high, # function argument 2
-                                    obs_blood_fit # function argument 3
+                                    obs_blood_sb # function argument 3
                                     )
                       )
 
+blood_pbe_boot <- do.call(what = rbind, 
+                         args = lapply(X = seq_len(nb), # return list of length nb
+                                       FUN = boot_sample, # function
+                                       blood_no, # function argument 1
+                                       blood_high, # function argument 2
+                                       obs_blood_pbe # function argument 3
+                         )
+)
+
 # buccal samples
-buccal_boot <- do.call(what = rbind, 
+buccal_sb_boot <- do.call(what = rbind, 
                       args = lapply(X = seq_len(nb), # return list of length nb
                                     FUN = boot_sample, # function
                                     buccal_no, # function argument 1
                                     buccal_high, # function argument 2
-                                    obs_buccal_fit
+                                    obs_buccal_sb
                                     )
                       )
 
-# save matrices
-save(blood_boot, buccal_boot, file = "data-processed/bootstrap-estimates.RData")
+buccal_pbe_boot <- do.call(what = rbind, 
+                       args = lapply(X = seq_len(nb), # return list of length nb
+                                     FUN = boot_sample, # function
+                                     buccal_no, # function argument 1
+                                     buccal_high, # function argument 2
+                                     obs_buccal_pbe
+                       )
+)
+
+# save estimates
+save(blood_sb_boot, 
+     blood_pbe_boot,
+     buccal_sb_boot,
+     buccal_pbe_boot,
+     file = "data-processed/bootstrap-estimates.RData")
