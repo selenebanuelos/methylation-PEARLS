@@ -10,6 +10,8 @@
 # setup
 library(dplyr)
 library(gee)
+# function to get post-estimate associations from GEE (by Alan Hubbard)
+source('code/gee_post_estimate.R')
 
 # import data ##################################################################
 # DNAm age data and other sample info
@@ -58,32 +60,33 @@ buccal <- filter(clean, tissue == 'buccal')
 
 # estimation using generalized estimating equations ############################
 # blood samples
-blood_ped_be_int <- gee(ped_be ~ age*pearls + pearls + age + sex + income_FPL_100,
+blood_ped_be <- gee(ped_be ~ age*pearls + pearls + age + sex + income_FPL_100,
                     id = pearls_id,
                     data = blood,
                     family = 'gaussian',
                     corstr = 'exchangeable')
 
-blood_horvath2_int <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
+blood_horvath2 <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
                     id = pearls_id,
                     data = blood,
                     family = 'gaussian',
                     corstr = 'exchangeable')
 
 # buccal samples
-buccal_ped_be_int <- gee(ped_be ~ age*pearls + pearls + age + sex + income_FPL_100,
+buccal_ped_be <- gee(ped_be ~ age*pearls + pearls + age + sex + income_FPL_100,
                     id = pearls_id,
                     data = buccal,
                     family = 'gaussian',
                     corstr = 'exchangeable')
 
-buccal_horvath2_int <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
+buccal_horvath2 <- gee(horvath2 ~ age*pearls + pearls + age + sex + income_FPL_100,
                       id = pearls_id,
                       data = buccal,
                       family = 'gaussian',
                       corstr = 'exchangeable')
 
-# calculate 95% confidence intervals ###########################################
+# calculate 95% confidence intervals for all coefficients 
+################################################################################
 # function that creates 95% CI using robust SE
 make_ci <- function(model, # gee object
                     label # character string describing model
@@ -110,10 +113,16 @@ make_ci <- function(model, # gee object
 
 # with timepoint*pearls interaction
 # coef is effect of PEARLS satus on pop average for DNAm age at baseline??
-make_ci(blood_horvath2_int, 'Skin & Blood in blood samples')
-make_ci(buccal_horvath2_int, 'Skin & Blood in buccal samples')
-make_ci(blood_ped_be_int, 'PedBE in blood samples')
-make_ci(buccal_ped_be_int, 'PedBE in buccal samples')
+make_ci(blood_horvath2, 'Skin & Blood in blood samples')
+make_ci(buccal_horvath2, 'Skin & Blood in buccal samples')
+make_ci(blood_ped_be, 'PedBE in blood samples')
+make_ci(buccal_ped_be, 'PedBE in buccal samples')
+
+# calculate 95% CI for parameter of interest (5 year diff in conditional mean EAD)
+################################################################################
+gee.post.estimate(blood_horvath2,
+                  comps = c(0,0,0,0,0,5),  # multiply (age*pearls) term by 5
+                  labs = c('5 year change'))
 
 # output
 ################################################################################
