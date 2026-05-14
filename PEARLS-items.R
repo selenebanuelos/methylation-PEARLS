@@ -1,9 +1,12 @@
 ### Author: Selene Banuelos
 ### Date: 4/29/2026
-### Description: Make table of PEARLS items reported by pilot study participants
+### Description: Make heatmap or dotplot type plot to show prevalence of each PEARLS item
+### in sample participants that reported >= 5 PEARLS
 
 # setup
 library(dplyr)
+library(tidyr)
+library(ggplot2)
 
 # import data
 ################################################################################
@@ -65,12 +68,40 @@ var_versions <- pearls %>%
 # cleaned up dataset with all PEARLS items
 clean_pearls <- pearls %>%
   filter(visitnum == 1) %>%
-  select(pearls_id, visitnum, contains('ident_plus_deident')) %>%
+  select(pearls_id, contains('ident_plus_deident')) %>%
   mutate_if(is.numeric, as.factor)
 
 # remove "_ident_plus_deident" suffix from variable names
 names(clean_pearls) <- sub('_ident_plus_deident', '', names(clean_pearls))
 
+# make data longer for plotting
+long <- clean_pearls %>%
+  pivot_longer(cols = -pearls_id,
+               names_to = 'Item',
+               values_to = 'Presence'
+  ) %>%
+  mutate(Presence = factor(Presence, 
+                           levels = c(0,1),
+                           labels = c('Absent',
+                                      'Present'))) %>%
+  group_by(pearls_id) %>%
+  mutate(item_count = sum(Presence == 'Present')) %>%
+  mutate(Participant = factor(cur_group_id()))
+
 # data visualization
 ################################################################################
-# make dotplot or heatmap to show how many participants reported which events
+# make dotplot to show how many participants reported which events
+plot <- ggplot(long, aes(x = Participant,
+                 y = Item,
+                 fill = Presence)) +
+  geom_point(shape = 21, size = 5, color = 'grey', stroke = 0.5) +
+  scale_fill_manual(values = c('Absent' = 'white',
+                               'Present' = 'black')) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank()
+  )
+
+# output
+################################################################################
+ggsave('figures/dotplot-pearls-items.png', plot)
