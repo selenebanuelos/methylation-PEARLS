@@ -2,6 +2,7 @@
 ### Date: 4/29/2026
 ### Description: Make heatmap or dotplot type plot to show prevalence of each PEARLS item
 ### in sample participants that reported >= 5 PEARLS
+### Notes: https://medium.com/@one-more-step/how-to-draw-an-ordered-binary-presence-absence-dot-plot-or-heat-map-in-r-512feebd19d8
 
 # setup
 library(dplyr)
@@ -77,31 +78,53 @@ names(clean_pearls) <- sub('_ident_plus_deident', '', names(clean_pearls))
 # make data longer for plotting
 long <- clean_pearls %>%
   pivot_longer(cols = -pearls_id,
-               names_to = 'Item',
-               values_to = 'Presence'
+               names_to = 'item',
+               values_to = 'presence'
   ) %>%
-  mutate(Presence = factor(Presence, 
+  mutate(presence = factor(presence, 
                            levels = c(0,1),
                            labels = c('Absent',
                                       'Present'))) %>%
   group_by(pearls_id) %>%
-  mutate(item_count = sum(Presence == 'Present')) %>%
-  mutate(Participant = factor(cur_group_id()))
+  mutate(pearls_score = sum(presence == 'Present'),
+         participant_index = factor(cur_group_id())) %>%
+  ungroup() %>%
+  group_by(item) %>%
+  mutate(item_freq = sum(presence == 'Present')) %>%
+  ungroup()
 
 # data visualization
 ################################################################################
-# make dotplot to show how many participants reported which events
-plot <- ggplot(long, aes(x = Participant,
-                 y = Item,
-                 fill = Presence)) +
-  geom_point(shape = 21, size = 5, color = 'grey', stroke = 0.5) +
+# make dotplot to show which participants reported which events
+plot <- ggplot(long, aes(
+  # order participants by PEARLS score, highest on left and descending to right
+  x = reorder(participant_index, pearls_score, decreasing = TRUE),
+  # order items with highest reported freq on top and descending towards bottom
+  y = reorder(item, item_freq),
+  # fill in dots depending on if item was reported or not
+  fill = presence)
+  ) +
+  geom_point(shape = 21, # circle
+             size = 7, # size of circles
+             color = '#BCE9C5FF', # outline of circles
+             stroke = 1.5 # width of outline
+             ) +
   scale_fill_manual(values = c('Absent' = 'white',
-                               'Present' = 'black')) +
+                               'Present' = '#18BDB0FF')
+                    ) +
   theme_minimal() +
-  theme(
-    panel.grid = element_blank()
-  )
+  labs(
+    title = 'PEARLS items reported by each participant',
+    x = 'Participant',
+    y = 'Item',
+    fill = 'Presence' 
+    ) +
+  theme(panel.grid = element_blank())
 
 # output
 ################################################################################
-ggsave('figures/dotplot-pearls-items.png', plot)
+ggsave('figures/dotplot-pearls-items.png', 
+       plot,
+       width = 6.5,
+       height = 6,
+       units = 'in')
