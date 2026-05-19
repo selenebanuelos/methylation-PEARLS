@@ -8,7 +8,7 @@
 # setup
 library(dplyr)
 library(ggplot2)
-library(Metrics) # calculatge meadian absolute error
+library(Metrics) # calculate meadian absolute error
 
 # import data
 ################################################################################
@@ -16,18 +16,21 @@ DNAm_age <- read.csv('data-processed/dnam-age-sample-info.csv')
 
 # data wrangling
 ################################################################################
-# DNAm biomarkers of interest
-biomarkers <- c('horvath',
+# DNAm biomarkers of interest (1st generation clocks)
+biomarkers <- c('horvath_age',
                 'horvath2',
-                'hannum',
-                'pedbe')
+                'hannum_age',
+                'ped_be',
+                'epigenetic_age_zhang',
+                'c_age')
 
 # clean up DNAm and chrono age data for plotting
 ages_long <- DNAm_age %>%
-  select(pearls_id, horvath2, ped_be, age, tissue, aces_baseline, timepoint) %>%
+  select(-c(age_baseline, sex, imp_method, specimenid)) %>%
+  #select(pearls_id, biomarkers, age, tissue, aces_baseline, timepoint) %>%
   # make data longer for plotting downstream
   tidyr::pivot_longer(
-    cols = c(horvath2, ped_be),
+    cols = biomarkers,
     names_to = 'clock',
     values_to = 'dnam_age'
   ) %>%
