@@ -128,7 +128,8 @@ permutation_test <- function(df, # (dataframe) data
   obs_test_stat <- mean_high - mean_no
   
   # p-value = # of perm test-stats >= observed test stat/ total # perm test-stats
-  p_value <- sum(perm_test_stats >= obs_test_stat) / p_n
+  p_value <- (sum(perm_test_stats >= obs_test_stat) + 1) / (p_n + 1)
+  # +1 to count observed test statistic 
   
   # create vector of test statistic and p-value
   ts_pval <- sapply(c(obs_test_stat, p_value), round, digits = 2)
