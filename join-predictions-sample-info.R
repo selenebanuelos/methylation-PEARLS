@@ -24,7 +24,13 @@ chrono_age <- c('horvath_age',
                 'hannum_age', 
                 'epigenetic_age_zhang', 
                 'c_age', 
-                'ped_be'
+                'ped_be',
+                'pheno_age',
+                'pace',
+                'pc_horvath1',
+                'pc_horvath2',
+                'pc_hannum',
+                'pc_pheno_age'
                 )
 
 # calculate % of missing predictive CpGs and filter for chronological age clocks
