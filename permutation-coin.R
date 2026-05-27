@@ -8,6 +8,7 @@
 library(dplyr)
 library(tidyr)
 library(coin)
+library(purrr)
 options(scipen = 999)
 
 # import data 
@@ -113,7 +114,12 @@ permutation_test <- function(outcome, # DNAm estimate name as string
     mean()
   
   # calculate observed test statistic 
-  obs_test_stat <- abs(mean_high - mean_no)
+  obs_test_stat <- abs(mean_high - mean_no) %>%
+    round(., digits = 2)
+  
+  # get rounded p-value for test statistic
+  p <- pvalue(result) %>%
+    round(., digits = 2)
 
   
   # return data frame with results
@@ -121,7 +127,7 @@ permutation_test <- function(outcome, # DNAm estimate name as string
              clock = outcome,
              timepoint = timepoint,
              test_stat = obs_test_stat,
-             pvalue = pvalue(result), # get p-value from permutation test
+             pvalue = p, # get p-value from permutation test
              data = deparse(substitute(data)) # dataframe name
   )
 }
