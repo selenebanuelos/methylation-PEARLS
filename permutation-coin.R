@@ -8,6 +8,7 @@
 library(dplyr)
 library(tidyr)
 library(coin)
+library(purrr)
 options(scipen = 999)
 
 # import data 
@@ -147,3 +148,20 @@ f_blood_5 <- map_df(biomarkers, permutation_test, 'Blood', 'T5', female)
 
 f_buccal_2 <- map_df(biomarkers, permutation_test, 'Buccal', 'T2', female)
 f_buccal_5 <- map_df(biomarkers, permutation_test, 'Buccal', 'T5', female)
+
+results <- rbind(blood_2,
+                 blood_5,
+                 buccal_2,
+                 buccal_5,
+                 m_blood_2,
+                 m_blood_5,
+                 m_buccal_2,
+                 m_buccal_5,
+                 f_blood_2,
+                 f_blood_5,
+                 f_buccal_2,
+                 f_buccal_5
+                 )
+# output
+################################################################################
+write.csv(results, 'data-processed/permutation_results.csv', row.names = FALSE)
