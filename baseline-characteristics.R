@@ -50,6 +50,13 @@ label(characteristics$income_FPL_100) <- 'Household income below 100% FPL (<25k)
 label(characteristics$pearls) <- 'PEARLS'
 
 # data visualization ###########################################################
+# check distribution of chronological age
+hist(characteristics$age_baseline) # overall
+filter(characteristics, pearls == 'None') %>% pull(age_baseline) %>% hist()
+filter(characteristics, pearls == 'High') %>% pull(age_baseline) %>% hist()
+# looks like there's a right skew (more younger children)
+
 # table stratified by PEARLS (no/high) status
 table1(~ age_baseline + sex + income_FPL_100 | pearls,
-       data = characteristics)
+       data = characteristics,
+       render.continuous = c(.='Median [Min, Max]'))
