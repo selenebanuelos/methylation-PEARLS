@@ -16,7 +16,7 @@ DNAm_age <- read.csv('data-processed/dnam-age-sample-info.csv')
 
 # data wrangling
 ################################################################################
-# DNAm biomarkers of interest
+# DNAm biomarkers of interest (predicting chronological age)
 biomarkers <- c('horvath_age', 
                 'horvath2', 
                 'hannum_age', 
@@ -24,7 +24,7 @@ biomarkers <- c('horvath_age',
                 'c_age', 
                 'ped_be',
                 'pheno_age',
-                'pace',
+                #'pace',
                 'pc_horvath1',
                 'pc_horvath2',
                 'pc_hannum',
@@ -94,105 +94,13 @@ mae <- ages_long %>%
 
 # data visualization
 ################################################################################
-# create scatter plots with regression line to display correlation between
-# epigenetic age and chronological age across both timepoints for each tissue
-baseline_corr <- ages_long %>%
-  # only plot data from baseline
-  filter(timepoint == 2) %>%
-  ggplot(aes(x = age, y = dnam_age, color = clock)) +
-  
-  # scatterplot showing relationship between DNAm age and chrono age
-  geom_point(shape = 16, aes(color = Pearls)) + # color code points by ACEs status
-  
-  # add regression line to show correlation
-  stat_smooth(method = 'lm', formula = y ~ x) +
-  
-  # stratify plot by epigenetic clock
-  facet_grid(clock ~ tissue) +
-  
-  # add in reference line showing 100% correlation
-  geom_abline(intercept = 0, slope = 1, linetype = 'dashed', color = 'darkgrey') +
-  
-  # add in correlation coefficients (r)
-  geom_text(data = filter(cor, timepoint == 2),
-            aes(label = paste0('r = ', corr), 
-                x = 2,
-                y = 16)) +
-  
-  # # add in median absolute errors
-  # geom_text(data = filter(mae, timepoint == 2), 
-  #           aes(label = paste0('MAE = ', mae), 
-  #               x = 2.4, 
-  #               y = 14)) +
-  
-  # formatting
-  labs(title = 'Correlation and median absolute error (MAE) between epigenetic and chronological age ',
-       x = 'Chronological Age',
-       y = 'Epigenetic Age') +
-  
-  theme_light() +
-  theme(strip.text = element_text(face = 'bold', size = 12),
-        strip.background = element_rect(fill = 'darkgrey'),
-        plot.caption = element_text(hjust = 0),
-        legend.position = 'bottom') +
-  
-  labs(caption = paste('Figure. Performance of epigenetic clocks from samples at baseline.',
-                       '\n',
-                       'Dashed line is reference for perfect linear relationship',
-                       '\n',
-                       'r = Pearson correlation coefficient')
-       )
-baseline
-
-followup <- ages_long %>%
-  # only plot data from baseline
-  filter(timepoint == 5) %>%
-  ggplot(aes(x = age, y = dnam_age)) +
-  
-  # scatterplot showing relationship between DNAm age and chrono age
-  geom_point(shape = 16, aes(color = Pearls)) + # color code points by ACEs status
-  
-  # add regression line to show correlation
-  stat_smooth(method = 'lm', formula = y ~ x) +
-  
-  # stratify plot by epigenetic clock
-  facet_grid(clock ~ tissue) +
-  
-  # add in reference line showing 100% correlation
-  geom_abline(intercept = 0, slope = 1, linetype = 'dashed', color = 'darkgrey') +
-  
-  # add in correlation coefficients (r)
-  geom_text(data = filter(cor, timepoint == 5),
-            aes(label = paste0('r = ', corr), 
-                x = 6.5,
-                y = 16)) +
-  
-  # add in median absolute errors
-  geom_text(data = filter(mae, timepoint == 5), 
-            aes(label = paste0('MAE = ', mae), 
-                x = 6.75, 
-                y = 14)) +
-  
-  # formatting
-  labs(title = 'Correlation and median absolute error (MAE) between epigenetic and chronological age ',
-       x = 'Chronological Age',
-       y = 'Epigenetic Age') +
-  theme_light() +
-  theme(strip.text = element_text(face = 'bold', size = 12),
-        strip.background = element_rect(fill = 'darkgrey'),
-        plot.caption = element_text(hjust = 0),
-        legend.position = 'bottom') +
-  
-  labs(caption = paste('Figure. Performance of epigenetic clocks from samples at follow-up.',
-                       '\n',
-                       'Dashed line is reference for perfect linear relationship',
-                       '\n',
-                       'r = Pearson correlation coefficient')
-  )
-followup
-
 # barplots to visualize median absolute error
-################################################################################
+# create named vector for facet labels in bar plots
+label_names <- c(`2` = 'Baseline',
+                 `5` = 'Follow-up',
+                 `Blood` = 'Blood',
+                 `Buccal` = 'Buccal')
+
 # compare PC versions of clocks with their corresponding non-PC version
 mae_pc_nonpc <- mae %>%
   filter(clock %in% pc) %>%
@@ -206,7 +114,7 @@ mae_pc_nonpc <- mae %>%
   # order bars in the same order as elements of 'pc' vector
   scale_x_discrete(limits = pc) +
   # facet plots
-  facet_grid(timepoint ~ tissue) +
+  facet_grid(timepoint ~ tissue, labeller = as_labeller(label_names)) +
   # formatting
   labs(title = 'Median absolute error between epigenetic and chronological age',
        x = 'Clock',
@@ -214,7 +122,7 @@ mae_pc_nonpc <- mae %>%
   theme_light() +
   theme(strip.text = element_text(face = 'bold', size = 12),
         strip.background = element_rect(fill = 'darkgrey'),
-        legend.position = 'bottom')
+        legend.position = 'none')
 # non-PC versions have lower MAE across all clocks
 
 # compare all non-PC version clocks
@@ -228,7 +136,7 @@ mae_nonpc <- mae %>%
   # show MAE above each bar
   geom_text(aes(label = mae), position = position_dodge(width = 0.9), vjust = -0.25) +
   # facet plots
-  facet_grid(timepoint ~ tissue) +
+  facet_grid(timepoint ~ tissue, labeller = as_labeller(label_names)) +
   # formatting
   labs(title = 'Median absolute error between epigenetic and chronological age',
        x = 'Clock',
@@ -236,7 +144,7 @@ mae_nonpc <- mae %>%
   theme_light() +
   theme(strip.text = element_text(face = 'bold', size = 12),
         strip.background = element_rect(fill = 'darkgrey'),
-        legend.position = 'bottom')
+        legend.position = 'none')
 
 # barplots to visualize Pearson correlation
 ################################################################################
@@ -253,7 +161,7 @@ cor_pc_nonpc <- cor %>%
   # order bars in the same order as elements of 'pc' vector
   scale_x_discrete(limits = pc) +
   # facet plots
-  facet_grid(timepoint ~ tissue) +
+  facet_grid(timepoint ~ tissue, labeller = as_labeller(label_names)) +
   # formatting
   labs(title = 'Pearson correlation coefficient between epigenetic and chronological age',
        x = 'Clock',
@@ -261,7 +169,7 @@ cor_pc_nonpc <- cor %>%
   theme_light() +
   theme(strip.text = element_text(face = 'bold', size = 12),
         strip.background = element_rect(fill = 'darkgrey'),
-        legend.position = 'bottom')
+        legend.position = 'none')
 # what do you see?
 
 # compare all non-PC version clocks
@@ -275,7 +183,7 @@ cor_nonpc <- cor %>%
   # show MAE above each bar
   geom_text(aes(label = corr), position = position_dodge(width = 0.9), vjust = -0.25) +
   # facet plots
-  facet_grid(timepoint ~ tissue) +
+  facet_grid(timepoint ~ tissue, labeller = as_labeller(label_names)) +
   # formatting
   labs(title = 'Pearson correlation coefficient between epigenetic and chronological age',
        x = 'Clock',
@@ -283,13 +191,56 @@ cor_nonpc <- cor %>%
   theme_light() +
   theme(strip.text = element_text(face = 'bold', size = 12),
         strip.background = element_rect(fill = 'darkgrey'),
-        legend.position = 'bottom')
+        legend.position = 'none')
+
+# barplots for MAE and correlation for 3 biomarkers selected
+mae_3 <- mae %>%
+  filter(pc_version == 'no',
+         clock %in% c('horvath_age', 'horvath2', 'ped_be')) %>%
+  ggplot(aes(x = clock,
+             y = mae, 
+             fill = clock)) +
+  # create bar plot
+  geom_bar(stat = "Identity") +
+  # show MAE above each bar
+  geom_text(aes(label = mae), position = position_dodge(width = 0.9), vjust = -0.25) +
+  # facet plots
+  facet_grid(timepoint ~ tissue, labeller = as_labeller(label_names)) +
+  # formatting
+  labs(title = 'Median absolute error between epigenetic and chronological age',
+       x = 'Clock',
+       y = 'Median absolute error') +
+  theme_light() +
+  theme(strip.text = element_text(face = 'bold', size = 12),
+        strip.background = element_rect(fill = 'darkgrey'),
+        legend.position = 'none')
+
+cor_3 <- cor %>%
+  filter(pc_version == 'no',
+         clock %in% c('horvath_age', 'horvath2', 'ped_be')) %>%
+  ggplot(aes(x = clock,
+             y = corr, 
+             fill = clock)) +
+  # create bar plot
+  geom_bar(stat = "Identity") +
+  # show MAE above each bar
+  geom_text(aes(label = corr), position = position_dodge(width = 0.9), vjust = -0.25) +
+  # facet plots
+  facet_grid(timepoint ~ tissue, labeller = as_labeller(label_names)) +
+  # formatting
+  labs(title = 'Pearson correlation coefficient between epigenetic and chronological age',
+       x = 'Clock',
+       y = 'r') +
+  theme_light() +
+  theme(strip.text = element_text(face = 'bold', size = 12),
+        strip.background = element_rect(fill = 'darkgrey'),
+        legend.position = 'none')
 
 # output
 ################################################################################
 # save plot as PNG
-ggsave('figures/corr-mae-scatterplot-baseline.png', plot = baseline)
-ggsave('figures/corr-mae-scatterplot-followup.png', plot = followup)
+# ggsave('figures/corr-mae-scatterplot-baseline.png', plot = baseline)
+# ggsave('figures/corr-mae-scatterplot-followup.png', plot = followup)
 
 # MAE plots
 ggsave('figures/mae-pc-nonpc.png', 
