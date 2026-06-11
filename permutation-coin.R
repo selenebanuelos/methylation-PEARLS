@@ -63,34 +63,53 @@ female <- filter(combined, sex_.0.F. == 0) # 0 = female
 
 # calculate difference in EAD and EAD trajectory
 ead_diff <- combined %>%
-  pivot_wider(id_cols = c(subjectid, Tissue, pearls),
+  # make data wider
+  pivot_wider(id_cols = c(subjectid, Tissue, pearls, sex_.0.F.),
               names_from = Timepoint,
-              values_from = c(Horvath2Resid, PedBEResid)
+              values_from = c(HorvathAgeResid, Horvath2Resid, PedBEResid)
   ) %>%
   # add in subject age at each visit
   left_join(ages, by = 'subjectid') %>%
   # calculate difference in EAD
-  mutate(horvath2_diff = (Horvath2Resid_T5 - Horvath2Resid_T2),
+  mutate(horvathage_diff = (HorvathAgeResid_T5 - HorvathAgeResid_T2),
+         horvath2_diff = (Horvath2Resid_T5 - Horvath2Resid_T2),
          pedbe_diff = (PedBEResid_T5 - PedBEResid_T2)
   ) %>%
   # calculate time between baseline and follow-up visits
   mutate(time_between = collectionage_t5 - collectionage_t2) %>%
   # calculate EAD trajectory (follow-up EAD - baseline EAD)/time between visits
-  mutate(horvath2_trajectory = horvath2_diff/time_between,
+  mutate(horvathage_trajectory = horvathage_diff/time_between,
+         horvath2_trajectory = horvath2_diff/time_between,
          pedbe_trajectory = pedbe_diff/time_between)
+
+# create list of biomarker trajectories
+traj <- list('horvathage_trajectory', 'horvath2_trajectory', 'pedbe_trajectory')
+
+# stratify dataset by biological sex
+male_t <- filter(ead_diff, sex_.0.F. == 1) # 1 = male
+female_t <- filter(ead_diff, sex_.0.F. == 0) # 0 = female
 
 # define functions
 ################################################################################
 # function to do exact permutation testing using coin::oneway_test
 permutation_test <- function(outcome, # DNAm estimate name as string
-                             tissue,
-                             timepoint,
-                             data
+                              tissue, # tissue type, capitalized
+                              timepoint, # 'T2', 'T5', or 'Trajectory'
+                              data # dataframe
 ) {
+
   # filter data for specified tissue and timepoint
-  df <- data %>%
-    filter(Tissue == tissue,
-           Timepoint == timepoint)
+  if (timepoint == 'Trajectory') { # if test stat is trajectory
+    
+    df <- data %>%
+    filter(Tissue == tissue) # no timepoint to filter on
+    
+  } else { # if test stat is cross-sectional comparison
+    
+    df <- data %>%
+      filter(Tissue == tissue,
+             Timepoint == timepoint) # filter by given timepoint
+  }
   
   # get outcome column as vector
   y <- df[[outcome]]
@@ -106,12 +125,12 @@ permutation_test <- function(outcome, # DNAm estimate name as string
   # get observed mean outcome in no PEARLS participants 
   mean_no <- filter(df, pearls == 'no') %>%
     pull(outcome) %>%
-    mean()
+    mean(na.rm = TRUE)
   
   # get observed mean outcome in high PEARLS participants
   mean_high <- filter(df, pearls == 'high') %>%
     pull(outcome) %>%
-    mean()
+    mean(na.rm = TRUE)
   
   # calculate observed test statistic 
   obs_test_stat <- abs(mean_high - mean_no) %>%
@@ -120,13 +139,12 @@ permutation_test <- function(outcome, # DNAm estimate name as string
   # get rounded p-value for test statistic
   p <- pvalue(result) %>%
     round(., digits = 2)
-
   
   # return data frame with results
   data.frame(tissue = tissue, # tissue type
              clock = outcome,
              timepoint = timepoint,
-             test_stat = obs_test_stat,
+             obs_test_stat = obs_test_stat,
              pvalue = p, # get p-value from permutation test
              data = deparse(substitute(data)) # dataframe name
   )
@@ -134,39 +152,53 @@ permutation_test <- function(outcome, # DNAm estimate name as string
 
 # exact permutation testing
 ################################################################################
-# do permutation tests for each biomarker in list
+# do permutation tests for each clock & trajectories of EAD
 blood_2 <- map_df(biomarkers, permutation_test, 'Blood', 'T2', combined)
 blood_5 <- map_df(biomarkers, permutation_test, 'Blood', 'T5', combined)
+blood_traj <- map_df(traj, permutation_test, 'Blood', 'Trajectory', ead_diff)
 
 buccal_2 <- map_df(biomarkers, permutation_test, 'Buccal', 'T2', combined)
 buccal_5 <- map_df(biomarkers, permutation_test, 'Buccal', 'T5', combined)
+buccal_traj <- map_df(traj, permutation_test2, 'Buccal', 'Trajectory', ead_diff)
 
-# sex-stratified testing 
+# sex-stratified permutation testing 
 m_blood_2 <- map_df(biomarkers, permutation_test, 'Blood', 'T2', male)
 m_blood_5 <- map_df(biomarkers, permutation_test, 'Blood', 'T5', male)
+m_blood_traj <- map_df(traj, permutation_test, 'Blood', 'Trajectory', male_t)
 
 m_buccal_2 <- map_df(biomarkers, permutation_test, 'Buccal', 'T2', male)
 m_buccal_5 <- map_df(biomarkers, permutation_test, 'Buccal', 'T5', male)
+m_buccal_traj <- map_df(traj, permutation_test, 'Buccal', 'Trajectory', male_t)
 
 f_blood_2 <- map_df(biomarkers, permutation_test, 'Blood', 'T2', female)
 f_blood_5 <- map_df(biomarkers, permutation_test, 'Blood', 'T5', female)
+f_blood_traj <- map_df(traj, permutation_test, 'Blood', 'Trajectory', female_t)
 
 f_buccal_2 <- map_df(biomarkers, permutation_test, 'Buccal', 'T2', female)
 f_buccal_5 <- map_df(biomarkers, permutation_test, 'Buccal', 'T5', female)
+f_buccal_traj <- map_df(traj, permutation_test, 'Buccal', 'Trajectory', female_t)
 
+# combine all results in dataframe
 results <- rbind(blood_2,
                  blood_5,
+                 blood_traj,
                  buccal_2,
                  buccal_5,
+                 buccal_traj,
                  m_blood_2,
                  m_blood_5,
+                 m_blood_traj,
                  m_buccal_2,
                  m_buccal_5,
+                 m_buccal_traj,
                  f_blood_2,
                  f_blood_5,
+                 f_blood_traj,
                  f_buccal_2,
-                 f_buccal_5
+                 f_buccal_5,
+                 f_buccal_traj
                  )
 # output
 ################################################################################
+# save results in csv
 write.csv(results, 'data-processed/permutation_results.csv', row.names = FALSE)
